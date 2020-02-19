@@ -14,3 +14,12 @@ services:
       PARSE_SERVER_DATABASE_URI: mongodb://mongo:27017/parse
     ports:
       - 1337:1337
+    entrypoint: 
+      - node
+      - ./bin/parse-server
+      - --mountGraphQL
+      - --mountPlayground
+  widget-postgres:
+    image: postgres:11-alpine
+    ports:
+      - 5432:5432
