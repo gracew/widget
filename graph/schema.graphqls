@@ -5,6 +5,17 @@
 type API {
   id: ID!
   name: String!
+  deploys: [Deploy!]!
+}
+
+enum Environment {
+  STAGING
+  PRODUCTION
+}
+
+type Deploy {
+  env: Environment!
+  url: String!
 }
 
 type Query {
@@ -16,6 +27,12 @@ input NewAPI {
   name: String!
 }
 
+input DeployAPI {
+  id: String!
+  env: Environment!
+}
+
 type Mutation {
   createAPI(input: NewAPI!): API!
+  deployAPI(input: DeployAPI!): Deploy!
 }
