@@ -27,8 +27,17 @@ func (r *mutationResolver) CreateAPI(ctx context.Context, input model.NewAPI) (*
 }
 
 func (r *queryResolver) Apis(ctx context.Context) ([]*model.API, error) {
-	api := model.API{ID: "1", Name: "comments"}
-	return []*model.API{&api}, nil
+	db := pg.Connect(&pg.Options{User: "postgres"})
+	defer db.Close()
+
+	var apis []model.API
+	db.Model(&apis).Select()
+
+	var res []*model.API
+	for i := 0; i < len(apis); i++ {
+		res = append(res, &apis[i])
+	}
+	return res, nil
 }
 
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
