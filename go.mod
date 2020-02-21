@@ -8,6 +8,6 @@ require (
 	github.com/go-pg/pg/v9 v9.1.2 // indirect
 	github.com/google/uuid v1.1.1
 	github.com/julienschmidt/httprouter v1.3.0
-	github.com/rs/cors v1.7.0 // indirect
+	github.com/rs/cors v1.7.0
 	github.com/vektah/gqlparser/v2 v2.0.1
 )

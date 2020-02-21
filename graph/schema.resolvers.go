@@ -21,9 +21,26 @@ func (r *mutationResolver) CreateAPI(ctx context.Context, input model.NewAPI) (*
 	}
 	err := db.Insert(api)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	return api, nil
+}
+
+func (r *mutationResolver) DeployAPI(ctx context.Context, input model.DeployAPI) (*model.Deploy, error) {
+	db := pg.Connect(&pg.Options{User: "postgres"})
+	defer db.Close()
+
+	deploy := &model.Deploy{
+		ID:    uuid.New().String(),
+		APIID: input.APIID,
+		Env:   input.Env,
+	}
+	// TODO(gracew): actually do some k8s/dns stuff lol
+	err := db.Insert(deploy)
+	if err != nil {
+		return nil, err
+	}
+	return deploy, nil
 }
 
 func (r *queryResolver) Apis(ctx context.Context) ([]*model.API, error) {

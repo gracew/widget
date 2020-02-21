@@ -9,13 +9,15 @@ type API {
 }
 
 enum Environment {
+  SANDBOX
   STAGING
   PRODUCTION
 }
 
 type Deploy {
+  id: ID!
+  apiID: ID!
   env: Environment!
-  url: String!
 }
 
 type Query {
@@ -28,7 +30,7 @@ input NewAPI {
 }
 
 input DeployAPI {
-  id: String!
+  apiID: ID!
   env: Environment!
 }
 

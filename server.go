@@ -42,13 +42,11 @@ func main() {
 }
 
 func createSchema(db *pg.DB) error {
-	for _, model := range []interface{}{(*model.API)(nil)} {
+	for _, model := range []interface{}{(*model.API)(nil), (*model.Deploy)(nil)} {
 		err := db.CreateTable(model, &orm.CreateTableOptions{
-			Temp: true,
+			IfNotExists: true,
 		})
-		print("done creating table")
 		if err != nil {
-			print(err)
 			return err
 		}
 	}

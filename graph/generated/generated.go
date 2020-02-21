@@ -44,12 +44,21 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	API struct {
-		ID   func(childComplexity int) int
-		Name func(childComplexity int) int
+		Deploys func(childComplexity int) int
+		ID      func(childComplexity int) int
+		Name    func(childComplexity int) int
+	}
+
+	Deploy struct {
+		APIID func(childComplexity int) int
+		Env   func(childComplexity int) int
+		ID    func(childComplexity int) int
+		URL   func(childComplexity int) int
 	}
 
 	Mutation struct {
 		CreateAPI func(childComplexity int, input model.NewAPI) int
+		DeployAPI func(childComplexity int, input model.DeployAPI) int
 	}
 
 	Query struct {
@@ -59,6 +68,7 @@ type ComplexityRoot struct {
 
 type MutationResolver interface {
 	CreateAPI(ctx context.Context, input model.NewAPI) (*model.API, error)
+	DeployAPI(ctx context.Context, input model.DeployAPI) (*model.Deploy, error)
 }
 type QueryResolver interface {
 	Apis(ctx context.Context) ([]*model.API, error)
@@ -79,6 +89,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	_ = ec
 	switch typeName + "." + field {
 
+	case "API.deploys":
+		if e.complexity.API.Deploys == nil {
+			break
+		}
+
+		return e.complexity.API.Deploys(childComplexity), true
+
 	case "API.id":
 		if e.complexity.API.ID == nil {
 			break
@@ -93,6 +110,34 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.API.Name(childComplexity), true
 
+	case "Deploy.apiID":
+		if e.complexity.Deploy.APIID == nil {
+			break
+		}
+
+		return e.complexity.Deploy.APIID(childComplexity), true
+
+	case "Deploy.env":
+		if e.complexity.Deploy.Env == nil {
+			break
+		}
+
+		return e.complexity.Deploy.Env(childComplexity), true
+
+	case "Deploy.id":
+		if e.complexity.Deploy.ID == nil {
+			break
+		}
+
+		return e.complexity.Deploy.ID(childComplexity), true
+
+	case "Deploy.url":
+		if e.complexity.Deploy.URL == nil {
+			break
+		}
+
+		return e.complexity.Deploy.URL(childComplexity), true
+
 	case "Mutation.createAPI":
 		if e.complexity.Mutation.CreateAPI == nil {
 			break
@@ -104,6 +149,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.CreateAPI(childComplexity, args["input"].(model.NewAPI)), true
+
+	case "Mutation.deployAPI":
+		if e.complexity.Mutation.DeployAPI == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deployAPI_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeployAPI(childComplexity, args["input"].(model.DeployAPI)), true
 
 	case "Query.apis":
 		if e.complexity.Query.Apis == nil {
@@ -183,6 +240,20 @@ var sources = []*ast.Source{
 type API {
   id: ID!
   name: String!
+  deploys: [Deploy!]!
+}
+
+enum Environment {
+  SANDBOX
+  STAGING
+  PRODUCTION
+}
+
+type Deploy {
+  id: ID!
+  apiID: ID!
+  env: Environment!
+  url: String!
 }
 
 type Query {
@@ -194,8 +265,14 @@ input NewAPI {
   name: String!
 }
 
+input DeployAPI {
+  apiID: ID!
+  env: Environment!
+}
+
 type Mutation {
   createAPI(input: NewAPI!): API!
+  deployAPI(input: DeployAPI!): Deploy!
 }`, BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
@@ -210,6 +287,20 @@ func (ec *executionContext) field_Mutation_createAPI_args(ctx context.Context, r
 	var arg0 model.NewAPI
 	if tmp, ok := rawArgs["input"]; ok {
 		arg0, err = ec.unmarshalNNewAPI2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐNewAPI(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_deployAPI_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.DeployAPI
+	if tmp, ok := rawArgs["input"]; ok {
+		arg0, err = ec.unmarshalNDeployAPI2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐDeployAPI(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -336,6 +427,176 @@ func (ec *executionContext) _API_name(ctx context.Context, field graphql.Collect
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _API_deploys(ctx context.Context, field graphql.CollectedField, obj *model.API) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "API",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Deploys, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Deploy)
+	fc.Result = res
+	return ec.marshalNDeploy2ᚕᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐDeployᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Deploy_id(ctx context.Context, field graphql.CollectedField, obj *model.Deploy) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Deploy",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Deploy_apiID(ctx context.Context, field graphql.CollectedField, obj *model.Deploy) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Deploy",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.APIID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Deploy_env(ctx context.Context, field graphql.CollectedField, obj *model.Deploy) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Deploy",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Env, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.Environment)
+	fc.Result = res
+	return ec.marshalNEnvironment2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐEnvironment(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Deploy_url(ctx context.Context, field graphql.CollectedField, obj *model.Deploy) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Deploy",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.URL, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Mutation_createAPI(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -375,6 +636,47 @@ func (ec *executionContext) _Mutation_createAPI(ctx context.Context, field graph
 	res := resTmp.(*model.API)
 	fc.Result = res
 	return ec.marshalNAPI2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐAPI(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_deployAPI(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_deployAPI_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeployAPI(rctx, args["input"].(model.DeployAPI))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Deploy)
+	fc.Result = res
+	return ec.marshalNDeploy2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐDeploy(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_apis(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1535,6 +1837,30 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputDeployAPI(ctx context.Context, obj interface{}) (model.DeployAPI, error) {
+	var it model.DeployAPI
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "apiID":
+			var err error
+			it.APIID, err = ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "env":
+			var err error
+			it.Env, err = ec.unmarshalNEnvironment2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐEnvironment(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputNewAPI(ctx context.Context, obj interface{}) (model.NewAPI, error) {
 	var it model.NewAPI
 	var asMap = obj.(map[string]interface{})
@@ -1582,6 +1908,53 @@ func (ec *executionContext) _API(ctx context.Context, sel ast.SelectionSet, obj 
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "deploys":
+			out.Values[i] = ec._API_deploys(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var deployImplementors = []string{"Deploy"}
+
+func (ec *executionContext) _Deploy(ctx context.Context, sel ast.SelectionSet, obj *model.Deploy) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, deployImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Deploy")
+		case "id":
+			out.Values[i] = ec._Deploy_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "apiID":
+			out.Values[i] = ec._Deploy_apiID(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "env":
+			out.Values[i] = ec._Deploy_env(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "url":
+			out.Values[i] = ec._Deploy_url(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -1610,6 +1983,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = graphql.MarshalString("Mutation")
 		case "createAPI":
 			out.Values[i] = ec._Mutation_createAPI(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "deployAPI":
+			out.Values[i] = ec._Mutation_deployAPI(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -1976,6 +2354,70 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNDeploy2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐDeploy(ctx context.Context, sel ast.SelectionSet, v model.Deploy) graphql.Marshaler {
+	return ec._Deploy(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNDeploy2ᚕᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐDeployᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Deploy) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNDeploy2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐDeploy(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) marshalNDeploy2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐDeploy(ctx context.Context, sel ast.SelectionSet, v *model.Deploy) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Deploy(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNDeployAPI2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐDeployAPI(ctx context.Context, v interface{}) (model.DeployAPI, error) {
+	return ec.unmarshalInputDeployAPI(ctx, v)
+}
+
+func (ec *executionContext) unmarshalNEnvironment2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐEnvironment(ctx context.Context, v interface{}) (model.Environment, error) {
+	var res model.Environment
+	return res, res.UnmarshalGQL(v)
+}
+
+func (ec *executionContext) marshalNEnvironment2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐEnvironment(ctx context.Context, sel ast.SelectionSet, v model.Environment) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) unmarshalNID2string(ctx context.Context, v interface{}) (string, error) {

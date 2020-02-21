@@ -2,11 +2,73 @@
 
 package model
 
+import (
+	"fmt"
+	"io"
+	"strconv"
+)
+
 type API struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID      string    `json:"id"`
+	Name    string    `json:"name"`
+	Deploys []*Deploy `json:"deploys"`
+}
+
+type Deploy struct {
+	ID    string      `json:"id"`
+	APIID string      `json:"apiID"`
+	Env   Environment `json:"env"`
+	URL   string      `json:"url"`
+}
+
+type DeployAPI struct {
+	APIID string      `json:"apiID"`
+	Env   Environment `json:"env"`
 }
 
 type NewAPI struct {
 	Name string `json:"name"`
+}
+
+type Environment string
+
+const (
+	EnvironmentSandbox    Environment = "SANDBOX"
+	EnvironmentStaging    Environment = "STAGING"
+	EnvironmentProduction Environment = "PRODUCTION"
+)
+
+var AllEnvironment = []Environment{
+	EnvironmentSandbox,
+	EnvironmentStaging,
+	EnvironmentProduction,
+}
+
+func (e Environment) IsValid() bool {
+	switch e {
+	case EnvironmentSandbox, EnvironmentStaging, EnvironmentProduction:
+		return true
+	}
+	return false
+}
+
+func (e Environment) String() string {
+	return string(e)
+}
+
+func (e *Environment) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = Environment(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid Environment", str)
+	}
+	return nil
+}
+
+func (e Environment) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
 }
