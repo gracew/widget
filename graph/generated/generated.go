@@ -45,10 +45,16 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	API struct {
-		Deploys func(childComplexity int) int
-		ID      func(childComplexity int) int
-		Name    func(childComplexity int) int
-		Objects func(childComplexity int) int
+		Definition func(childComplexity int) int
+		Deploys    func(childComplexity int) int
+		ID         func(childComplexity int) int
+		Name       func(childComplexity int) int
+	}
+
+	APIDefinition struct {
+		Fields     func(childComplexity int) int
+		Name       func(childComplexity int) int
+		Operations func(childComplexity int) int
 	}
 
 	Deploy struct {
@@ -80,12 +86,6 @@ type ComplexityRoot struct {
 		DeployAPI func(childComplexity int, input model.DeployAPI) int
 	}
 
-	ObjectDefinition struct {
-		Fields     func(childComplexity int) int
-		Name       func(childComplexity int) int
-		Operations func(childComplexity int) int
-	}
-
 	OperationDefinition struct {
 		Filter func(childComplexity int) int
 		Sort   func(childComplexity int) int
@@ -110,7 +110,7 @@ type ComplexityRoot struct {
 
 type MutationResolver interface {
 	CreateAPI(ctx context.Context, input model.NewAPI) (*model.API, error)
-	DefineAPI(ctx context.Context, input model.DefineAPI) ([]*model.ObjectDefinition, error)
+	DefineAPI(ctx context.Context, input model.DefineAPI) (*model.APIDefinition, error)
 	DeployAPI(ctx context.Context, input model.DeployAPI) (*model.Deploy, error)
 }
 type QueryResolver interface {
@@ -133,6 +133,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	_ = ec
 	switch typeName + "." + field {
 
+	case "API.definition":
+		if e.complexity.API.Definition == nil {
+			break
+		}
+
+		return e.complexity.API.Definition(childComplexity), true
+
 	case "API.deploys":
 		if e.complexity.API.Deploys == nil {
 			break
@@ -154,12 +161,26 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.API.Name(childComplexity), true
 
-	case "API.objects":
-		if e.complexity.API.Objects == nil {
+	case "APIDefinition.fields":
+		if e.complexity.APIDefinition.Fields == nil {
 			break
 		}
 
-		return e.complexity.API.Objects(childComplexity), true
+		return e.complexity.APIDefinition.Fields(childComplexity), true
+
+	case "APIDefinition.name":
+		if e.complexity.APIDefinition.Name == nil {
+			break
+		}
+
+		return e.complexity.APIDefinition.Name(childComplexity), true
+
+	case "APIDefinition.operations":
+		if e.complexity.APIDefinition.Operations == nil {
+			break
+		}
+
+		return e.complexity.APIDefinition.Operations(childComplexity), true
 
 	case "Deploy.apiID":
 		if e.complexity.Deploy.APIID == nil {
@@ -273,27 +294,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.DeployAPI(childComplexity, args["input"].(model.DeployAPI)), true
-
-	case "ObjectDefinition.fields":
-		if e.complexity.ObjectDefinition.Fields == nil {
-			break
-		}
-
-		return e.complexity.ObjectDefinition.Fields(childComplexity), true
-
-	case "ObjectDefinition.name":
-		if e.complexity.ObjectDefinition.Name == nil {
-			break
-		}
-
-		return e.complexity.ObjectDefinition.Name(childComplexity), true
-
-	case "ObjectDefinition.operations":
-		if e.complexity.ObjectDefinition.Operations == nil {
-			break
-		}
-
-		return e.complexity.ObjectDefinition.Operations(childComplexity), true
 
 	case "OperationDefinition.filter":
 		if e.complexity.OperationDefinition.Filter == nil {
@@ -435,7 +435,7 @@ type API {
   id: ID!
   name: String!
   deploys: [Deploy!]!
-  objects: [ObjectDefinition!]!
+  definition: APIDefinition!
 }
 
 enum Environment {
@@ -450,7 +450,7 @@ type Deploy {
   env: Environment!
 }
 
-type ObjectDefinition {
+type APIDefinition {
   name: String!
   fields: [FieldDefinition!]!
   operations: [OperationDefinition!]!
@@ -526,7 +526,7 @@ input DeployAPI {
 
 type Mutation {
   createAPI(input: NewAPI!): API!
-  defineAPI(input: DefineAPI!): [ObjectDefinition!]!
+  defineAPI(input: DefineAPI!): APIDefinition!
   deployAPI(input: DeployAPI!): Deploy!
 }
 `, BuiltIn: false},
@@ -745,7 +745,7 @@ func (ec *executionContext) _API_deploys(ctx context.Context, field graphql.Coll
 	return ec.marshalNDeploy2ᚕᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐDeployᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _API_objects(ctx context.Context, field graphql.CollectedField, obj *model.API) (ret graphql.Marshaler) {
+func (ec *executionContext) _API_definition(ctx context.Context, field graphql.CollectedField, obj *model.API) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -762,7 +762,7 @@ func (ec *executionContext) _API_objects(ctx context.Context, field graphql.Coll
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Objects, nil
+		return obj.Definition, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -774,9 +774,111 @@ func (ec *executionContext) _API_objects(ctx context.Context, field graphql.Coll
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.ObjectDefinition)
+	res := resTmp.(*model.APIDefinition)
 	fc.Result = res
-	return ec.marshalNObjectDefinition2ᚕᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐObjectDefinitionᚄ(ctx, field.Selections, res)
+	return ec.marshalNAPIDefinition2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐAPIDefinition(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _APIDefinition_name(ctx context.Context, field graphql.CollectedField, obj *model.APIDefinition) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "APIDefinition",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _APIDefinition_fields(ctx context.Context, field graphql.CollectedField, obj *model.APIDefinition) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "APIDefinition",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Fields, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.FieldDefinition)
+	fc.Result = res
+	return ec.marshalNFieldDefinition2ᚕᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐFieldDefinitionᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _APIDefinition_operations(ctx context.Context, field graphql.CollectedField, obj *model.APIDefinition) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "APIDefinition",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Operations, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.OperationDefinition)
+	fc.Result = res
+	return ec.marshalNOperationDefinition2ᚕᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐOperationDefinitionᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Deploy_id(ctx context.Context, field graphql.CollectedField, obj *model.Deploy) (ret graphql.Marshaler) {
@@ -1215,9 +1317,9 @@ func (ec *executionContext) _Mutation_defineAPI(ctx context.Context, field graph
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.ObjectDefinition)
+	res := resTmp.(*model.APIDefinition)
 	fc.Result = res
-	return ec.marshalNObjectDefinition2ᚕᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐObjectDefinitionᚄ(ctx, field.Selections, res)
+	return ec.marshalNAPIDefinition2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐAPIDefinition(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_deployAPI(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1259,108 +1361,6 @@ func (ec *executionContext) _Mutation_deployAPI(ctx context.Context, field graph
 	res := resTmp.(*model.Deploy)
 	fc.Result = res
 	return ec.marshalNDeploy2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐDeploy(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _ObjectDefinition_name(ctx context.Context, field graphql.CollectedField, obj *model.ObjectDefinition) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "ObjectDefinition",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Name, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _ObjectDefinition_fields(ctx context.Context, field graphql.CollectedField, obj *model.ObjectDefinition) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "ObjectDefinition",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Fields, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]*model.FieldDefinition)
-	fc.Result = res
-	return ec.marshalNFieldDefinition2ᚕᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐFieldDefinitionᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _ObjectDefinition_operations(ctx context.Context, field graphql.CollectedField, obj *model.ObjectDefinition) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "ObjectDefinition",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Operations, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]*model.OperationDefinition)
-	fc.Result = res
-	return ec.marshalNOperationDefinition2ᚕᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐOperationDefinitionᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _OperationDefinition_type(ctx context.Context, field graphql.CollectedField, obj *model.OperationDefinition) (ret graphql.Marshaler) {
@@ -2915,8 +2915,45 @@ func (ec *executionContext) _API(ctx context.Context, sel ast.SelectionSet, obj 
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "objects":
-			out.Values[i] = ec._API_objects(ctx, field, obj)
+		case "definition":
+			out.Values[i] = ec._API_definition(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var aPIDefinitionImplementors = []string{"APIDefinition"}
+
+func (ec *executionContext) _APIDefinition(ctx context.Context, sel ast.SelectionSet, obj *model.APIDefinition) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, aPIDefinitionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("APIDefinition")
+		case "name":
+			out.Values[i] = ec._APIDefinition_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "fields":
+			out.Values[i] = ec._APIDefinition_fields(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "operations":
+			out.Values[i] = ec._APIDefinition_operations(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -3086,43 +3123,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "deployAPI":
 			out.Values[i] = ec._Mutation_deployAPI(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
-var objectDefinitionImplementors = []string{"ObjectDefinition"}
-
-func (ec *executionContext) _ObjectDefinition(ctx context.Context, sel ast.SelectionSet, obj *model.ObjectDefinition) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, objectDefinitionImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("ObjectDefinition")
-		case "name":
-			out.Values[i] = ec._ObjectDefinition_name(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "fields":
-			out.Values[i] = ec._ObjectDefinition_fields(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "operations":
-			out.Values[i] = ec._ObjectDefinition_operations(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -3577,6 +3577,20 @@ func (ec *executionContext) marshalNAPI2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgrap
 	return ec._API(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNAPIDefinition2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐAPIDefinition(ctx context.Context, sel ast.SelectionSet, v model.APIDefinition) graphql.Marshaler {
+	return ec._APIDefinition(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNAPIDefinition2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐAPIDefinition(ctx context.Context, sel ast.SelectionSet, v *model.APIDefinition) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._APIDefinition(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
 	return graphql.UnmarshalBoolean(v)
 }
@@ -3773,57 +3787,6 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 
 func (ec *executionContext) unmarshalNNewAPI2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐNewAPI(ctx context.Context, v interface{}) (model.NewAPI, error) {
 	return ec.unmarshalInputNewAPI(ctx, v)
-}
-
-func (ec *executionContext) marshalNObjectDefinition2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐObjectDefinition(ctx context.Context, sel ast.SelectionSet, v model.ObjectDefinition) graphql.Marshaler {
-	return ec._ObjectDefinition(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNObjectDefinition2ᚕᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐObjectDefinitionᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.ObjectDefinition) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNObjectDefinition2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐObjectDefinition(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-	return ret
-}
-
-func (ec *executionContext) marshalNObjectDefinition2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐObjectDefinition(ctx context.Context, sel ast.SelectionSet, v *model.ObjectDefinition) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._ObjectDefinition(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNOperationDefinition2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐOperationDefinition(ctx context.Context, sel ast.SelectionSet, v model.OperationDefinition) graphql.Marshaler {

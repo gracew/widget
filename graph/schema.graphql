@@ -6,7 +6,7 @@ type API {
   id: ID!
   name: String!
   deploys: [Deploy!]!
-  objects: [ObjectDefinition!]!
+  definition: APIDefinition!
 }
 
 enum Environment {
@@ -21,7 +21,7 @@ type Deploy {
   env: Environment!
 }
 
-type ObjectDefinition {
+type APIDefinition {
   name: String!
   fields: [FieldDefinition!]!
   operations: [OperationDefinition!]!
@@ -97,6 +97,6 @@ input DeployAPI {
 
 type Mutation {
   createAPI(input: NewAPI!): API!
-  defineAPI(input: DefineAPI!): [ObjectDefinition!]!
+  defineAPI(input: DefineAPI!): APIDefinition!
   deployAPI(input: DeployAPI!): Deploy!
 }

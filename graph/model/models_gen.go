@@ -13,10 +13,16 @@ type Constraint interface {
 }
 
 type API struct {
-	ID      string              `json:"id"`
-	Name    string              `json:"name"`
-	Deploys []*Deploy           `json:"deploys"`
-	Objects []*ObjectDefinition `json:"objects"`
+	ID         string         `json:"id"`
+	Name       string         `json:"name"`
+	Deploys    []*Deploy      `json:"deploys"`
+	Definition *APIDefinition `json:"definition"`
+}
+
+type APIDefinition struct {
+	Name       string                 `json:"name"`
+	Fields     []*FieldDefinition     `json:"fields"`
+	Operations []*OperationDefinition `json:"operations"`
 }
 
 type DefineAPI struct {
@@ -58,12 +64,6 @@ func (IntConstraint) IsConstraint() {}
 
 type NewAPI struct {
 	Name string `json:"name"`
-}
-
-type ObjectDefinition struct {
-	Name       string                 `json:"name"`
-	Fields     []*FieldDefinition     `json:"fields"`
-	Operations []*OperationDefinition `json:"operations"`
 }
 
 type OperationDefinition struct {

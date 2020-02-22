@@ -1,0 +1,36 @@
+{
+  "name": "GameScore",
+  "fields": [
+    {
+      "name": "score",
+      "type": "Float!",
+      "constraints": {
+        "min": 0
+      }
+    },
+    {
+      "name": "playerId",
+      "type": "String!"
+    },
+    {
+      "name": "game",
+      "type": "Game!"
+    }
+  ],
+  "operations": [
+    {
+      "type": "CREATE"
+    },
+    {
+      "type": "READ"
+    },
+    {
+      "type": "LIST",
+      "sort": {
+        "field": "score",
+        "order": "DESC"
+      },
+      "filter": ["game", "player"]
+    }
+  ]
+}
