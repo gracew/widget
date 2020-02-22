@@ -1,0 +1,78 @@
+# GraphQL schema example
+#
+# https://gqlgen.com/getting-started/
+
+type API {
+  id: ID!
+  name: String!
+  deploys: [Deploy!]!
+  objects: [ObjectDefinition!]!
+}
+
+enum Environment {
+  SANDBOX
+  STAGING
+  PRODUCTION
+}
+
+type Deploy {
+  id: ID!
+  apiID: ID!
+  env: Environment!
+}
+
+type ObjectDefinition {
+  name: String!
+  type: Type!
+  customType: String
+  constraints: [Constraint!]!
+}
+
+union Constraint = IntConstraint | FloatConstraint | StringLengthConstraint
+
+type IntConstraint {
+  min: Int
+  max: Int
+}
+
+type FloatConstraint {
+  min: Float
+  max: Float
+}
+
+type StringLengthConstraint {
+  min: Int
+  max: Int
+}
+
+enum Type {
+  STRING
+  FLOAT
+  CUSTOM
+}
+
+type Query {
+  # TODO(gracew): page this
+  apis: [API!]!
+}
+
+input NewAPI {
+  name: String!
+}
+
+input DefineAPI {
+  apiId: ID!
+  # TODO(gracew): in the future may want to send an already parsed representation?
+  rawDefinition: String!
+}
+
+input DeployAPI {
+  apiID: ID!
+  env: Environment!
+}
+
+type Mutation {
+  createAPI(input: NewAPI!): API!
+  defineAPI(input: DefineAPI!): API!
+  deployAPI(input: DeployAPI!): Deploy!
+}

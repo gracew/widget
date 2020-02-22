@@ -4,6 +4,7 @@ package graph
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-pg/pg"
 	"github.com/google/uuid"
@@ -24,6 +25,10 @@ func (r *mutationResolver) CreateAPI(ctx context.Context, input model.NewAPI) (*
 		return nil, err
 	}
 	return api, nil
+}
+
+func (r *mutationResolver) DefineAPI(ctx context.Context, input model.DefineAPI) (*model.API, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 func (r *mutationResolver) DeployAPI(ctx context.Context, input model.DeployAPI) (*model.Deploy, error) {

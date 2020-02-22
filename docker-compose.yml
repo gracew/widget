@@ -19,6 +19,20 @@ services:
       - ./bin/parse-server
       - --mountGraphQL
       - --mountPlayground
+  parse-dashboard:
+    container_name: parse-dashboard
+    image: parseplatform/parse-dashboard
+    environment:
+      PARSE_DASHBOARD_APP_ID: appId
+      PARSE_DASHBOARD_MASTER_KEY: masterKey
+      PARSE_DASHBOARD_SERVER_URL: "http://localhost:1337/parse"
+      PARSE_DASHBOARD_GRAPHQL_URL: "http://localhost:1337/graphql"
+    ports:
+      - 4040:4040
+    entrypoint: 
+      - node
+      - Parse-Dashboard/index.js
+      - --dev
   widget-postgres:
     image: postgres:11-alpine
     ports:

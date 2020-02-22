@@ -1,0 +1,25 @@
+types:
+  Game:
+    fields:
+      name: String!
+    operations:
+      - create
+      - read
+      - update
+  GameScore:
+    score:
+      type: Float!
+      constraints:
+        min: 0
+    player: User!
+    game: Game!
+    operations:
+      - create
+      - read
+      - list:
+        sort:
+          field: score
+          order: desc
+        filter:
+          - game
+          - player
