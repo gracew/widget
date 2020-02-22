@@ -76,6 +76,7 @@ type StringLengthConstraint {
 
 type Query {
   # TODO(gracew): page this
+  api(id: ID!): API
   apis: [API!]!
 }
 
@@ -84,7 +85,7 @@ input NewAPI {
 }
 
 input DefineAPI {
-  apiId: ID!
+  apiID: ID!
   # TODO(gracew): in the future may want to send an already parsed representation?
   rawDefinition: String!
 }

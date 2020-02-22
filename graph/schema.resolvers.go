@@ -64,6 +64,19 @@ func (r *mutationResolver) DeployAPI(ctx context.Context, input model.DeployAPI)
 	return deploy, nil
 }
 
+func (r *queryResolver) API(ctx context.Context, id string) (*model.API, error) {
+	db := pg.Connect(&pg.Options{User: "postgres"})
+	defer db.Close()
+
+	api := &model.API{ID: id}
+	err := db.Select(api)
+	if err != nil {
+		return nil, err
+	}
+
+	return api, nil
+}
+
 func (r *queryResolver) Apis(ctx context.Context) ([]*model.API, error) {
 	db := pg.Connect(&pg.Options{User: "postgres"})
 	defer db.Close()

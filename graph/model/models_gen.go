@@ -20,7 +20,7 @@ type API struct {
 }
 
 type DefineAPI struct {
-	APIID         string `json:"apiId"`
+	APIID         string `json:"apiID"`
 	RawDefinition string `json:"rawDefinition"`
 }
 

@@ -93,6 +93,7 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
+		API  func(childComplexity int, id string) int
 		Apis func(childComplexity int) int
 	}
 
@@ -113,6 +114,7 @@ type MutationResolver interface {
 	DeployAPI(ctx context.Context, input model.DeployAPI) (*model.Deploy, error)
 }
 type QueryResolver interface {
+	API(ctx context.Context, id string) (*model.API, error)
 	Apis(ctx context.Context) ([]*model.API, error)
 }
 
@@ -314,6 +316,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.OperationDefinition.Type(childComplexity), true
 
+	case "Query.api":
+		if e.complexity.Query.API == nil {
+			break
+		}
+
+		args, err := ec.field_Query_api_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.API(childComplexity, args["id"].(string)), true
+
 	case "Query.apis":
 		if e.complexity.Query.Apis == nil {
 			break
@@ -491,6 +505,7 @@ type StringLengthConstraint {
 
 type Query {
   # TODO(gracew): page this
+  api(id: ID!): API
   apis: [API!]!
 }
 
@@ -499,7 +514,7 @@ input NewAPI {
 }
 
 input DefineAPI {
-  apiId: ID!
+  apiID: ID!
   # TODO(gracew): in the future may want to send an already parsed representation?
   rawDefinition: String!
 }
@@ -575,6 +590,20 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		}
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_api_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
 	return args, nil
 }
 
@@ -1428,6 +1457,44 @@ func (ec *executionContext) _OperationDefinition_filter(ctx context.Context, fie
 	res := resTmp.([]string)
 	fc.Result = res
 	return ec.marshalOString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_api(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Query",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_api_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().API(rctx, args["id"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.API)
+	fc.Result = res
+	return ec.marshalOAPI2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐAPI(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_apis(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2724,7 +2791,7 @@ func (ec *executionContext) unmarshalInputDefineAPI(ctx context.Context, obj int
 
 	for k, v := range asMap {
 		switch k {
-		case "apiId":
+		case "apiID":
 			var err error
 			it.APIID, err = ec.unmarshalNID2string(ctx, v)
 			if err != nil {
@@ -3116,6 +3183,17 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Query")
+		case "api":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_api(ctx, field)
+				return res
+			})
 		case "apis":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -4055,6 +4133,17 @@ func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel a
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalOAPI2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐAPI(ctx context.Context, sel ast.SelectionSet, v model.API) graphql.Marshaler {
+	return ec._API(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalOAPI2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐAPI(ctx context.Context, sel ast.SelectionSet, v *model.API) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._API(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
