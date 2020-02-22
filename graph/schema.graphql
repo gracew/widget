@@ -22,8 +22,36 @@ type Deploy {
 }
 
 type ObjectDefinition {
+  fields: [FieldDefinition!]!
+  operations: [OperationDefinition!]!
+}
+
+type OperationDefinition {
+  type: OperationType!
+  sort: SortOrder
+  filter: [String!]
+}
+
+enum OperationType {
+  CREATE
+  UPDATE
+  READ
+  LIST
+}
+
+type SortDefinition {
+  field: String!
+  order: SortOrder!
+}
+
+enum SortOrder {
+  ASC
+  DESC
+}
+
+type FieldDefinition {
   name: String!
-  type: Type!
+  type: String!
   customType: String
   constraints: [Constraint!]!
 }
@@ -43,12 +71,6 @@ type FloatConstraint {
 type StringLengthConstraint {
   min: Int
   max: Int
-}
-
-enum Type {
-  STRING
-  FLOAT
-  CUSTOM
 }
 
 type Query {

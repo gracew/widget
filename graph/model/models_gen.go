@@ -35,6 +35,13 @@ type DeployAPI struct {
 	Env   Environment `json:"env"`
 }
 
+type FieldDefinition struct {
+	Name        string       `json:"name"`
+	Type        string       `json:"type"`
+	CustomType  *string      `json:"customType"`
+	Constraints []Constraint `json:"constraints"`
+}
+
 type FloatConstraint struct {
 	Min *float64 `json:"min"`
 	Max *float64 `json:"max"`
@@ -54,10 +61,19 @@ type NewAPI struct {
 }
 
 type ObjectDefinition struct {
-	Name        string       `json:"name"`
-	Type        Type         `json:"type"`
-	CustomType  *string      `json:"customType"`
-	Constraints []Constraint `json:"constraints"`
+	Fields     []*FieldDefinition     `json:"fields"`
+	Operations []*OperationDefinition `json:"operations"`
+}
+
+type OperationDefinition struct {
+	Type   OperationType `json:"type"`
+	Sort   *SortOrder    `json:"sort"`
+	Filter []string      `json:"filter"`
+}
+
+type SortDefinition struct {
+	Field string    `json:"field"`
+	Order SortOrder `json:"order"`
 }
 
 type StringLengthConstraint struct {
@@ -110,45 +126,88 @@ func (e Environment) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
-type Type string
+type OperationType string
 
 const (
-	TypeString Type = "STRING"
-	TypeFloat  Type = "FLOAT"
-	TypeCustom Type = "CUSTOM"
+	OperationTypeCreate OperationType = "CREATE"
+	OperationTypeUpdate OperationType = "UPDATE"
+	OperationTypeRead   OperationType = "READ"
+	OperationTypeList   OperationType = "LIST"
 )
 
-var AllType = []Type{
-	TypeString,
-	TypeFloat,
-	TypeCustom,
+var AllOperationType = []OperationType{
+	OperationTypeCreate,
+	OperationTypeUpdate,
+	OperationTypeRead,
+	OperationTypeList,
 }
 
-func (e Type) IsValid() bool {
+func (e OperationType) IsValid() bool {
 	switch e {
-	case TypeString, TypeFloat, TypeCustom:
+	case OperationTypeCreate, OperationTypeUpdate, OperationTypeRead, OperationTypeList:
 		return true
 	}
 	return false
 }
 
-func (e Type) String() string {
+func (e OperationType) String() string {
 	return string(e)
 }
 
-func (e *Type) UnmarshalGQL(v interface{}) error {
+func (e *OperationType) UnmarshalGQL(v interface{}) error {
 	str, ok := v.(string)
 	if !ok {
 		return fmt.Errorf("enums must be strings")
 	}
 
-	*e = Type(str)
+	*e = OperationType(str)
 	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid Type", str)
+		return fmt.Errorf("%s is not a valid OperationType", str)
 	}
 	return nil
 }
 
-func (e Type) MarshalGQL(w io.Writer) {
+func (e OperationType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type SortOrder string
+
+const (
+	SortOrderAsc  SortOrder = "ASC"
+	SortOrderDesc SortOrder = "DESC"
+)
+
+var AllSortOrder = []SortOrder{
+	SortOrderAsc,
+	SortOrderDesc,
+}
+
+func (e SortOrder) IsValid() bool {
+	switch e {
+	case SortOrderAsc, SortOrderDesc:
+		return true
+	}
+	return false
+}
+
+func (e SortOrder) String() string {
+	return string(e)
+}
+
+func (e *SortOrder) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = SortOrder(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid SortOrder", str)
+	}
+	return nil
+}
+
+func (e SortOrder) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
