@@ -4,7 +4,7 @@ package graph
 
 import (
 	"context"
-	"fmt"
+	"encoding/json"
 
 	"github.com/go-pg/pg"
 	"github.com/google/uuid"
@@ -27,8 +27,24 @@ func (r *mutationResolver) CreateAPI(ctx context.Context, input model.NewAPI) (*
 	return api, nil
 }
 
-func (r *mutationResolver) DefineAPI(ctx context.Context, input model.DefineAPI) (*model.API, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *mutationResolver) DefineAPI(ctx context.Context, input model.DefineAPI) ([]*model.ObjectDefinition, error) {
+	var objects []model.ObjectDefinition
+	json.Unmarshal([]byte(input.RawDefinition), &objects)
+
+	db := pg.Connect(&pg.Options{User: "postgres"})
+	defer db.Close()
+
+	var res []*model.ObjectDefinition
+	for i := 0; i < len(objects); i++ {
+		res = append(res, &objects[i])
+	}
+
+	api := &model.API{
+		ID:      input.APIID,
+		Objects: res,
+	}
+	db.Update(api)
+	return res, nil
 }
 
 func (r *mutationResolver) DeployAPI(ctx context.Context, input model.DeployAPI) (*model.Deploy, error) {

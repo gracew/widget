@@ -1,0 +1,7 @@
+[
+  {
+    "name": "Game",
+    "fields": [{ "name": "name", "type": "String!" }],
+    "operations": []
+  }
+]

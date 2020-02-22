@@ -61,6 +61,7 @@ type NewAPI struct {
 }
 
 type ObjectDefinition struct {
+	Name       string                 `json:"name"`
 	Fields     []*FieldDefinition     `json:"fields"`
 	Operations []*OperationDefinition `json:"operations"`
 }
