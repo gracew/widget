@@ -12,21 +12,6 @@ import (
 	"github.com/gracew/widget/graph/model"
 )
 
-func (r *mutationResolver) CreateAPI(ctx context.Context, input model.NewAPI) (*model.API, error) {
-	db := pg.Connect(&pg.Options{User: "postgres"})
-	defer db.Close()
-
-	api := &model.API{
-		ID:   uuid.New().String(),
-		Name: input.Name,
-	}
-	err := db.Insert(api)
-	if err != nil {
-		return nil, err
-	}
-	return api, nil
-}
-
 func (r *mutationResolver) DefineAPI(ctx context.Context, input model.DefineAPI) (*model.APIDefinition, error) {
 	var definition model.APIDefinition
 	json.Unmarshal([]byte(input.RawDefinition), &definition)
@@ -36,9 +21,10 @@ func (r *mutationResolver) DefineAPI(ctx context.Context, input model.DefineAPI)
 
 	api := &model.API{
 		ID:         input.APIID,
+		Name:       definition.Name,
 		Definition: &definition,
 	}
-	db.Update(api)
+	db.Insert(api)
 	return &definition, nil
 }
 

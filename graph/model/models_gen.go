@@ -62,10 +62,6 @@ type IntConstraint struct {
 
 func (IntConstraint) IsConstraint() {}
 
-type NewAPI struct {
-	Name string `json:"name"`
-}
-
 type OperationDefinition struct {
 	Type   OperationType `json:"type"`
 	Sort   *SortOrder    `json:"sort"`

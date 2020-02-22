@@ -80,10 +80,6 @@ type Query {
   apis: [API!]!
 }
 
-input NewAPI {
-  name: String!
-}
-
 input DefineAPI {
   apiID: ID!
   # TODO(gracew): in the future may want to send an already parsed representation?
@@ -96,7 +92,6 @@ input DeployAPI {
 }
 
 type Mutation {
-  createAPI(input: NewAPI!): API!
   defineAPI(input: DefineAPI!): APIDefinition!
   deployAPI(input: DeployAPI!): Deploy!
 }

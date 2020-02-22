@@ -81,7 +81,6 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		CreateAPI func(childComplexity int, input model.NewAPI) int
 		DefineAPI func(childComplexity int, input model.DefineAPI) int
 		DeployAPI func(childComplexity int, input model.DeployAPI) int
 	}
@@ -109,7 +108,6 @@ type ComplexityRoot struct {
 }
 
 type MutationResolver interface {
-	CreateAPI(ctx context.Context, input model.NewAPI) (*model.API, error)
 	DefineAPI(ctx context.Context, input model.DefineAPI) (*model.APIDefinition, error)
 	DeployAPI(ctx context.Context, input model.DeployAPI) (*model.Deploy, error)
 }
@@ -258,18 +256,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.IntConstraint.Min(childComplexity), true
-
-	case "Mutation.createAPI":
-		if e.complexity.Mutation.CreateAPI == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_createAPI_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.CreateAPI(childComplexity, args["input"].(model.NewAPI)), true
 
 	case "Mutation.defineAPI":
 		if e.complexity.Mutation.DefineAPI == nil {
@@ -509,10 +495,6 @@ type Query {
   apis: [API!]!
 }
 
-input NewAPI {
-  name: String!
-}
-
 input DefineAPI {
   apiID: ID!
   # TODO(gracew): in the future may want to send an already parsed representation?
@@ -525,7 +507,6 @@ input DeployAPI {
 }
 
 type Mutation {
-  createAPI(input: NewAPI!): API!
   defineAPI(input: DefineAPI!): APIDefinition!
   deployAPI(input: DeployAPI!): Deploy!
 }
@@ -536,20 +517,6 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
-
-func (ec *executionContext) field_Mutation_createAPI_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 model.NewAPI
-	if tmp, ok := rawArgs["input"]; ok {
-		arg0, err = ec.unmarshalNNewAPI2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐNewAPI(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["input"] = arg0
-	return args, nil
-}
 
 func (ec *executionContext) field_Mutation_defineAPI_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
@@ -1238,47 +1205,6 @@ func (ec *executionContext) _IntConstraint_max(ctx context.Context, field graphq
 	res := resTmp.(*int)
 	fc.Result = res
 	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Mutation_createAPI(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Mutation",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_createAPI_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateAPI(rctx, args["input"].(model.NewAPI))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.API)
-	fc.Result = res
-	return ec.marshalNAPI2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐAPI(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_defineAPI(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2833,24 +2759,6 @@ func (ec *executionContext) unmarshalInputDeployAPI(ctx context.Context, obj int
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputNewAPI(ctx context.Context, obj interface{}) (model.NewAPI, error) {
-	var it model.NewAPI
-	var asMap = obj.(map[string]interface{})
-
-	for k, v := range asMap {
-		switch k {
-		case "name":
-			var err error
-			it.Name, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -3111,11 +3019,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Mutation")
-		case "createAPI":
-			out.Values[i] = ec._Mutation_createAPI(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "defineAPI":
 			out.Values[i] = ec._Mutation_defineAPI(ctx, field)
 			if out.Values[i] == graphql.Null {
@@ -3783,10 +3686,6 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 		}
 	}
 	return res
-}
-
-func (ec *executionContext) unmarshalNNewAPI2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐNewAPI(ctx context.Context, v interface{}) (model.NewAPI, error) {
-	return ec.unmarshalInputNewAPI(ctx, v)
 }
 
 func (ec *executionContext) marshalNOperationDefinition2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐOperationDefinition(ctx context.Context, sel ast.SelectionSet, v model.OperationDefinition) graphql.Marshaler {
