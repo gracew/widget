@@ -12,7 +12,7 @@ import (
 	"github.com/gracew/widget/graph/model"
 )
 
-func (r *mutationResolver) DefineAPI(ctx context.Context, input model.DefineAPI) (*model.APIDefinition, error) {
+func (r *mutationResolver) DefineAPI(ctx context.Context, input model.DefineAPI) (*model.API, error) {
 	var definition model.APIDefinition
 	json.Unmarshal([]byte(input.RawDefinition), &definition)
 
@@ -20,12 +20,12 @@ func (r *mutationResolver) DefineAPI(ctx context.Context, input model.DefineAPI)
 	defer db.Close()
 
 	api := &model.API{
-		ID:         input.APIID,
+		ID:         uuid.New().String(),
 		Name:       definition.Name,
 		Definition: &definition,
 	}
 	db.Insert(api)
-	return &definition, nil
+	return api, nil
 }
 
 func (r *mutationResolver) DeployAPI(ctx context.Context, input model.DeployAPI) (*model.Deploy, error) {

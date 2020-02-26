@@ -29,7 +29,7 @@ type APIDefinition {
 
 type OperationDefinition {
   type: OperationType!
-  sort: SortOrder
+  sort: [SortDefinition!]
   filter: [String!]
 }
 
@@ -81,7 +81,6 @@ type Query {
 }
 
 input DefineAPI {
-  apiID: ID!
   # TODO(gracew): in the future may want to send an already parsed representation?
   rawDefinition: String!
 }
@@ -92,6 +91,6 @@ input DeployAPI {
 }
 
 type Mutation {
-  defineAPI(input: DefineAPI!): APIDefinition!
+  defineAPI(input: DefineAPI!): API!
   deployAPI(input: DeployAPI!): Deploy!
 }

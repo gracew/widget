@@ -108,7 +108,7 @@ type ComplexityRoot struct {
 }
 
 type MutationResolver interface {
-	DefineAPI(ctx context.Context, input model.DefineAPI) (*model.APIDefinition, error)
+	DefineAPI(ctx context.Context, input model.DefineAPI) (*model.API, error)
 	DeployAPI(ctx context.Context, input model.DeployAPI) (*model.Deploy, error)
 }
 type QueryResolver interface {
@@ -496,7 +496,6 @@ type Query {
 }
 
 input DefineAPI {
-  apiID: ID!
   # TODO(gracew): in the future may want to send an already parsed representation?
   rawDefinition: String!
 }
@@ -507,7 +506,7 @@ input DeployAPI {
 }
 
 type Mutation {
-  defineAPI(input: DefineAPI!): APIDefinition!
+  defineAPI(input: DefineAPI!): API!
   deployAPI(input: DeployAPI!): Deploy!
 }
 `, BuiltIn: false},
@@ -1243,9 +1242,9 @@ func (ec *executionContext) _Mutation_defineAPI(ctx context.Context, field graph
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.APIDefinition)
+	res := resTmp.(*model.API)
 	fc.Result = res
-	return ec.marshalNAPIDefinition2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐAPIDefinition(ctx, field.Selections, res)
+	return ec.marshalNAPI2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐAPI(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_deployAPI(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2717,12 +2716,6 @@ func (ec *executionContext) unmarshalInputDefineAPI(ctx context.Context, obj int
 
 	for k, v := range asMap {
 		switch k {
-		case "apiID":
-			var err error
-			it.APIID, err = ec.unmarshalNID2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
 		case "rawDefinition":
 			var err error
 			it.RawDefinition, err = ec.unmarshalNString2string(ctx, v)
