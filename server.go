@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
@@ -135,13 +136,19 @@ func listHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodOptions {
 		return
 	}
+	pageSize, ok := r.URL.Query()["pageSize"]
+	data := ""
+	if ok && len(pageSize[0]) >= 1 {
+		data = "limit=" + pageSize[0]
+	}
 	vars := mux.Vars(r)
 	parseClass := vars["apiName"] + vars["env"]
-	req, err := http.NewRequest("GET", "http://localhost:1337/parse/classes/"+parseClass, nil)
+	req, err := http.NewRequest("GET", "http://localhost:1337/parse/classes/"+parseClass, strings.NewReader(data))
 	if err != nil {
 		panic(err)
 	}
 	req.Header.Add("X-Parse-Application-Id", "appId")
+	req.Header.Add("Content-type", "application/x-www-form-urlencoded")
 	client := &http.Client{}
 	res, err := client.Do(req)
 	if err != nil {
