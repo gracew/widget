@@ -77,6 +77,10 @@ func formatDeployId(deployId string) string {
 
 func createHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "*")
+	if r.Method == http.MethodOptions {
+		return
+	}
 	vars := mux.Vars(r)
 	deployID := formatDeployId(vars["api"]) // we'll use this for the parse class
 	// talk to parse, forward request body
@@ -107,6 +111,10 @@ func createHandler(w http.ResponseWriter, r *http.Request) {
 
 func readHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "*")
+	if r.Method == http.MethodOptions {
+		return
+	}
 	vars := mux.Vars(r)
 	deployID := formatDeployId(vars["api"]) // we'll use this for the parse class
 	objectID := vars["id"]
@@ -129,6 +137,10 @@ func readHandler(w http.ResponseWriter, r *http.Request) {
 
 func listHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "*")
+	if r.Method == http.MethodOptions {
+		return
+	}
 	vars := mux.Vars(r)
 	deployID := formatDeployId(vars["api"]) // we'll use this for the parse class
 	req, err := http.NewRequest("GET", "http://localhost:1337/parse/classes/"+deployID, nil)
