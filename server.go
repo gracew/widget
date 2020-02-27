@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
@@ -42,9 +41,9 @@ func main() {
 
 	// individual API routes
 	r := mux.NewRouter()
-	r.HandleFunc("/apis/{api}", createHandler).Methods("POST", "OPTIONS")
-	r.HandleFunc("/apis/{api}/{id}", readHandler).Methods("GET", "OPTIONS")
-	r.HandleFunc("/apis/{api}", listHandler).Methods("GET", "OPTIONS")
+	r.HandleFunc("/apis/{apiName}/{env}", createHandler).Methods("POST", "OPTIONS")
+	r.HandleFunc("/apis/{apiName}/{env}/{id}", readHandler).Methods("GET", "OPTIONS")
+	r.HandleFunc("/apis/{apiName}/{env}", listHandler).Methods("GET", "OPTIONS")
 	// TODO(gracew): remove cors later
 	r.Use(mux.CORSMethodMiddleware(r))
 	http.Handle("/", r)
@@ -70,11 +69,6 @@ type parseRes struct {
 	ObjectID  string `json:"objectId"`
 }
 
-// parse doesn't accept dashes in class names
-func formatDeployId(deployId string) string {
-	return strings.Replace(deployId, "-", "", -1)
-}
-
 func createHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Headers", "*")
@@ -82,10 +76,10 @@ func createHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	vars := mux.Vars(r)
-	deployID := formatDeployId(vars["api"]) // we'll use this for the parse class
+	parseClass := vars["apiName"] + vars["env"]
 	// talk to parse, forward request body
 	// TODO(gracew): don't hardcode this
-	req, err := http.NewRequest("POST", "http://localhost:1337/parse/classes/"+deployID, r.Body)
+	req, err := http.NewRequest("POST", "http://localhost:1337/parse/classes/"+parseClass, r.Body)
 	if err != nil {
 		panic(err)
 	}
@@ -116,9 +110,9 @@ func readHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	vars := mux.Vars(r)
-	deployID := formatDeployId(vars["api"]) // we'll use this for the parse class
+	parseClass := vars["apiName"] + vars["env"]
 	objectID := vars["id"]
-	req, err := http.NewRequest("GET", "http://localhost:1337/parse/classes/"+deployID+"/"+objectID, nil)
+	req, err := http.NewRequest("GET", "http://localhost:1337/parse/classes/"+parseClass+"/"+objectID, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -142,8 +136,8 @@ func listHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	vars := mux.Vars(r)
-	deployID := formatDeployId(vars["api"]) // we'll use this for the parse class
-	req, err := http.NewRequest("GET", "http://localhost:1337/parse/classes/"+deployID, nil)
+	parseClass := vars["apiName"] + vars["env"]
+	req, err := http.NewRequest("GET", "http://localhost:1337/parse/classes/"+parseClass, nil)
 	if err != nil {
 		panic(err)
 	}
