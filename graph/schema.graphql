@@ -52,26 +52,28 @@ enum SortOrder {
 
 type FieldDefinition {
   name: String!
-  type: String!
+  type: Type!
   customType: String
-  constraints: [Constraint!]!
+  constraints: Constraint!
 }
 
-union Constraint = IntConstraint | FloatConstraint | StringLengthConstraint
-
-type IntConstraint {
-  min: Int
-  max: Int
+enum Type {
+  FLOAT
+  INT
+  STRING
 }
 
-type FloatConstraint {
-  min: Float
-  max: Float
-}
-
-type StringLengthConstraint {
-  min: Int
-  max: Int
+type Constraint {
+  # type Int
+  minInt: Int
+  maxInt: Int
+  # type Float
+  minFloat: Float
+  maxFloat: Float
+  # type String
+  regex: String
+  minLength: Int
+  maxLength: Int
 }
 
 type Query {

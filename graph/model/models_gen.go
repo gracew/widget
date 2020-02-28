@@ -8,10 +8,6 @@ import (
 	"strconv"
 )
 
-type Constraint interface {
-	IsConstraint()
-}
-
 type API struct {
 	ID         string         `json:"id"`
 	Name       string         `json:"name"`
@@ -23,6 +19,16 @@ type APIDefinition struct {
 	Name       string                 `json:"name"`
 	Fields     []*FieldDefinition     `json:"fields"`
 	Operations []*OperationDefinition `json:"operations"`
+}
+
+type Constraint struct {
+	MinInt    *int     `json:"minInt"`
+	MaxInt    *int     `json:"maxInt"`
+	MinFloat  *float64 `json:"minFloat"`
+	MaxFloat  *float64 `json:"maxFloat"`
+	Regex     *string  `json:"regex"`
+	MinLength *int     `json:"minLength"`
+	MaxLength *int     `json:"maxLength"`
 }
 
 type DefineAPI struct {
@@ -41,43 +47,22 @@ type DeployAPI struct {
 }
 
 type FieldDefinition struct {
-	Name        string       `json:"name"`
-	Type        string       `json:"type"`
-	CustomType  *string      `json:"customType"`
-	Constraints []Constraint `json:"constraints"`
+	Name        string      `json:"name"`
+	Type        Type        `json:"type"`
+	CustomType  *string     `json:"customType"`
+	Constraints *Constraint `json:"constraints"`
 }
-
-type FloatConstraint struct {
-	Min *float64 `json:"min"`
-	Max *float64 `json:"max"`
-}
-
-func (FloatConstraint) IsConstraint() {}
-
-type IntConstraint struct {
-	Min *int `json:"min"`
-	Max *int `json:"max"`
-}
-
-func (IntConstraint) IsConstraint() {}
 
 type OperationDefinition struct {
-	Type   OperationType `json:"type"`
-	Sort   *SortOrder    `json:"sort"`
-	Filter []string      `json:"filter"`
+	Type   OperationType     `json:"type"`
+	Sort   []*SortDefinition `json:"sort"`
+	Filter []string          `json:"filter"`
 }
 
 type SortDefinition struct {
 	Field string    `json:"field"`
 	Order SortOrder `json:"order"`
 }
-
-type StringLengthConstraint struct {
-	Min *int `json:"min"`
-	Max *int `json:"max"`
-}
-
-func (StringLengthConstraint) IsConstraint() {}
 
 type Environment string
 
@@ -205,5 +190,48 @@ func (e *SortOrder) UnmarshalGQL(v interface{}) error {
 }
 
 func (e SortOrder) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type Type string
+
+const (
+	TypeFloat  Type = "FLOAT"
+	TypeInt    Type = "INT"
+	TypeString Type = "STRING"
+)
+
+var AllType = []Type{
+	TypeFloat,
+	TypeInt,
+	TypeString,
+}
+
+func (e Type) IsValid() bool {
+	switch e {
+	case TypeFloat, TypeInt, TypeString:
+		return true
+	}
+	return false
+}
+
+func (e Type) String() string {
+	return string(e)
+}
+
+func (e *Type) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = Type(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid Type", str)
+	}
+	return nil
+}
+
+func (e Type) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }

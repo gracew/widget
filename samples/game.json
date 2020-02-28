@@ -1,5 +1,22 @@
 {
-  "name": "Game",
-  "fields": [{ "name": "name", "type": "String!" }],
+  "name": "GameScore",
+  "fields": [
+    {
+      "name": "name",
+      "type": "STRING",
+      "constraints": {
+        "minLength": 2,
+        "maxLength": 100
+      }
+    },
+    {
+      "name": "score",
+      "type": "FLOAT",
+      "constraints": {
+        "minFloat": 0,
+        "maxFloat": 100
+      }
+    }
+  ],
   "operations": []
 }

@@ -3,18 +3,19 @@
   "fields": [
     {
       "name": "score",
-      "type": "Float!",
+      "type": "FLOAT",
       "constraints": {
-        "min": 0
+        "minFloat": 0,
+        "maxFloat": 100
       }
     },
     {
       "name": "playerId",
-      "type": "String!"
+      "type": "STRING"
     },
     {
       "name": "game",
-      "type": "Game!"
+      "type": "Game"
     }
   ],
   "operations": [
