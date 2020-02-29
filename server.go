@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -54,7 +56,7 @@ func main() {
 }
 
 func createSchema(db *pg.DB) error {
-	for _, model := range []interface{}{(*model.API)(nil), (*model.Deploy)(nil)} {
+	for _, model := range []interface{}{(*model.API)(nil), (*model.Deploy)(nil), (*model.APIAuth)(nil), (*model.TestToken)(nil)} {
 		err := db.CreateTable(model, &orm.CreateTableOptions{
 			IfNotExists: true,
 		})
@@ -70,6 +72,26 @@ type parseRes struct {
 	ObjectID  string `json:"objectId"`
 }
 
+func getUserId(parseToken string) (string, error) {
+	req, err := http.NewRequest("GET", "http://localhost:1337/parse/users/me", nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Add("X-Parse-Application-Id", "appId")
+	req.Header.Add("X-Parse-Session-Token", parseToken)
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	var parseRes parseRes
+	err = json.NewDecoder(res.Body).Decode(&parseRes)
+	if err != nil {
+		return "", err
+	}
+	return parseRes.ObjectID, nil
+}
+
 func createHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Headers", "*")
@@ -78,26 +100,39 @@ func createHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	vars := mux.Vars(r)
 	parseClass := vars["apiName"] + vars["env"]
-	// talk to parse, forward request body
-	// TODO(gracew): don't hardcode this
-	req, err := http.NewRequest("POST", "http://localhost:1337/parse/classes/"+parseClass, r.Body)
-	if err != nil {
-		panic(err)
-	}
-	req.Header.Add("X-Parse-Application-Id", "appId")
-	req.Header.Add("Content-type", "application/json")
-	client := &http.Client{}
-	res, err := client.Do(req)
+
+	// get the userId
+	parseToken := r.Header["X-Parse-Session-Token"][0]
+	userID, err := getUserId(parseToken)
 	if err != nil {
 		panic(err)
 	}
 
-	/*var parseRes parseRes
-	err = json.NewDecoder(res.Body).Decode(&parseRes)
-	print(parseRes.ObjectID)
-	*/
+	// add createdBy to the original req
+	var originalReq map[string]interface{}
+	err = json.NewDecoder(r.Body).Decode(&originalReq)
+	originalReq["createdBy"] = userID
+
+	// talk to parse, forward request body
+	// TODO(gracew): don't hardcode this
+	marshaled, err := json.Marshal(originalReq)
+	if err != nil {
+		panic(err)
+	}
+	parseReq, err := http.NewRequest("POST", "http://localhost:1337/parse/classes/"+parseClass, bytes.NewReader(marshaled))
+	if err != nil {
+		panic(err)
+	}
+	parseReq.Header.Add("X-Parse-Application-Id", "appId")
+	parseReq.Header.Add("Content-type", "application/json")
+	client := &http.Client{}
+	parseRes, err := client.Do(parseReq)
+	if err != nil {
+		panic(err)
+	}
+
 	// return response
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := ioutil.ReadAll(parseRes.Body)
 	if err != nil {
 		panic(err)
 	}

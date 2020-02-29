@@ -54,12 +54,15 @@ type FieldDefinition {
   name: String!
   type: Type!
   customType: String
+  optional: Boolean
+  list: Boolean
   constraints: Constraint!
 }
 
 enum Type {
   FLOAT
   INT
+  BOOLEAN
   STRING
 }
 
@@ -72,27 +75,85 @@ type Constraint {
   maxFloat: Float
   # type String
   regex: String
+  # type String, List
   minLength: Int
   maxLength: Int
+}
+
+type Auth {
+  authenticationType: AuthenticationType!
+  readPolicy: AuthPolicy!
+  writePolicy: AuthPolicy!
+}
+
+enum AuthenticationType {
+  BUILT_IN
+}
+
+type AuthPolicy {
+  type: AuthPolicyType!
+  # type ATTRIBUTE_MATCH
+  userAttribute: String
+  objectAttribute: String
+}
+
+enum AuthPolicyType {
+  CREATED_BY
+  ATTRIBUTE_MATCH
+  CUSTOM
+}
+
+input AuthPolicyInput {
+  type: AuthPolicyType!
+  # type ATTRIBUTE_MATCH
+  userAttribute: String
+  objectAttribute: String
 }
 
 type Query {
   # TODO(gracew): page this
   api(id: ID!): API
   apis: [API!]!
+
+  auth(apiID: ID!): Auth
+
+  testTokens(apiID: ID!): [String!]!
 }
 
-input DefineAPI {
+input DefineAPIInput {
   # TODO(gracew): in the future may want to send an already parsed representation?
   rawDefinition: String!
 }
 
-input DeployAPI {
+input UpdateAPIInput {
+  apiID: ID!
+  # TODO(gracew): in the future may want to send an already parsed representation?
+  rawDefinition: String!
+}
+
+input DeployAPIInput {
   apiID: ID!
   env: Environment!
 }
 
+input AuthAPIInput {
+  apiID: ID!
+  authenticationType: AuthenticationType!
+  readPolicy: AuthPolicyInput!
+  writePolicy: AuthPolicyInput!
+}
+
+input TestToken {
+  apiID: ID!
+  label: String!
+  token: String!
+}
+
 type Mutation {
-  defineAPI(input: DefineAPI!): API!
-  deployAPI(input: DeployAPI!): Deploy!
+  defineAPI(input: DefineAPIInput!): API!
+  updateAPI(input: UpdateAPIInput!): API!
+  authAPI(input: AuthAPIInput!): Boolean!
+  deployAPI(input: DeployAPIInput!): Deploy!
+
+  addTestToken(input: TestToken!): Boolean!
 }

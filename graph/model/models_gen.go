@@ -21,6 +21,31 @@ type APIDefinition struct {
 	Operations []*OperationDefinition `json:"operations"`
 }
 
+type Auth struct {
+	AuthenticationType AuthenticationType `json:"authenticationType"`
+	ReadPolicy         *AuthPolicy        `json:"readPolicy"`
+	WritePolicy        *AuthPolicy        `json:"writePolicy"`
+}
+
+type AuthAPIInput struct {
+	APIID              string             `json:"apiID"`
+	AuthenticationType AuthenticationType `json:"authenticationType"`
+	ReadPolicy         *AuthPolicyInput   `json:"readPolicy"`
+	WritePolicy        *AuthPolicyInput   `json:"writePolicy"`
+}
+
+type AuthPolicy struct {
+	Type            AuthPolicyType `json:"type"`
+	UserAttribute   *string        `json:"userAttribute"`
+	ObjectAttribute *string        `json:"objectAttribute"`
+}
+
+type AuthPolicyInput struct {
+	Type            AuthPolicyType `json:"type"`
+	UserAttribute   *string        `json:"userAttribute"`
+	ObjectAttribute *string        `json:"objectAttribute"`
+}
+
 type Constraint struct {
 	MinInt    *int     `json:"minInt"`
 	MaxInt    *int     `json:"maxInt"`
@@ -31,7 +56,7 @@ type Constraint struct {
 	MaxLength *int     `json:"maxLength"`
 }
 
-type DefineAPI struct {
+type DefineAPIInput struct {
 	RawDefinition string `json:"rawDefinition"`
 }
 
@@ -41,7 +66,7 @@ type Deploy struct {
 	Env   Environment `json:"env"`
 }
 
-type DeployAPI struct {
+type DeployAPIInput struct {
 	APIID string      `json:"apiID"`
 	Env   Environment `json:"env"`
 }
@@ -50,6 +75,8 @@ type FieldDefinition struct {
 	Name        string      `json:"name"`
 	Type        Type        `json:"type"`
 	CustomType  *string     `json:"customType"`
+	Optional    *bool       `json:"optional"`
+	List        *bool       `json:"list"`
 	Constraints *Constraint `json:"constraints"`
 }
 
@@ -62,6 +89,99 @@ type OperationDefinition struct {
 type SortDefinition struct {
 	Field string    `json:"field"`
 	Order SortOrder `json:"order"`
+}
+
+type TestToken struct {
+	APIID string `json:"apiID"`
+	Label string `json:"label"`
+	Token string `json:"token"`
+}
+
+type UpdateAPIInput struct {
+	APIID         string `json:"apiID"`
+	RawDefinition string `json:"rawDefinition"`
+}
+
+type AuthPolicyType string
+
+const (
+	AuthPolicyTypeCreatedBy      AuthPolicyType = "CREATED_BY"
+	AuthPolicyTypeAttributeMatch AuthPolicyType = "ATTRIBUTE_MATCH"
+	AuthPolicyTypeCustom         AuthPolicyType = "CUSTOM"
+)
+
+var AllAuthPolicyType = []AuthPolicyType{
+	AuthPolicyTypeCreatedBy,
+	AuthPolicyTypeAttributeMatch,
+	AuthPolicyTypeCustom,
+}
+
+func (e AuthPolicyType) IsValid() bool {
+	switch e {
+	case AuthPolicyTypeCreatedBy, AuthPolicyTypeAttributeMatch, AuthPolicyTypeCustom:
+		return true
+	}
+	return false
+}
+
+func (e AuthPolicyType) String() string {
+	return string(e)
+}
+
+func (e *AuthPolicyType) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = AuthPolicyType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid AuthPolicyType", str)
+	}
+	return nil
+}
+
+func (e AuthPolicyType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type AuthenticationType string
+
+const (
+	AuthenticationTypeBuiltIn AuthenticationType = "BUILT_IN"
+)
+
+var AllAuthenticationType = []AuthenticationType{
+	AuthenticationTypeBuiltIn,
+}
+
+func (e AuthenticationType) IsValid() bool {
+	switch e {
+	case AuthenticationTypeBuiltIn:
+		return true
+	}
+	return false
+}
+
+func (e AuthenticationType) String() string {
+	return string(e)
+}
+
+func (e *AuthenticationType) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = AuthenticationType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid AuthenticationType", str)
+	}
+	return nil
+}
+
+func (e AuthenticationType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
 type Environment string
@@ -196,20 +316,22 @@ func (e SortOrder) MarshalGQL(w io.Writer) {
 type Type string
 
 const (
-	TypeFloat  Type = "FLOAT"
-	TypeInt    Type = "INT"
-	TypeString Type = "STRING"
+	TypeFloat   Type = "FLOAT"
+	TypeInt     Type = "INT"
+	TypeBoolean Type = "BOOLEAN"
+	TypeString  Type = "STRING"
 )
 
 var AllType = []Type{
 	TypeFloat,
 	TypeInt,
+	TypeBoolean,
 	TypeString,
 }
 
 func (e Type) IsValid() bool {
 	switch e {
-	case TypeFloat, TypeInt, TypeString:
+	case TypeFloat, TypeInt, TypeBoolean, TypeString:
 		return true
 	}
 	return false

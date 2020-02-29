@@ -5,6 +5,7 @@ package graph
 import (
 	"context"
 	"encoding/json"
+	"errors"
 
 	"github.com/go-pg/pg"
 	"github.com/google/uuid"
@@ -12,7 +13,7 @@ import (
 	"github.com/gracew/widget/graph/model"
 )
 
-func (r *mutationResolver) DefineAPI(ctx context.Context, input model.DefineAPI) (*model.API, error) {
+func (r *mutationResolver) DefineAPI(ctx context.Context, input model.DefineAPIInput) (*model.API, error) {
 	var definition model.APIDefinition
 	json.Unmarshal([]byte(input.RawDefinition), &definition)
 
@@ -28,7 +29,43 @@ func (r *mutationResolver) DefineAPI(ctx context.Context, input model.DefineAPI)
 	return api, nil
 }
 
-func (r *mutationResolver) DeployAPI(ctx context.Context, input model.DeployAPI) (*model.Deploy, error) {
+func (r *mutationResolver) UpdateAPI(ctx context.Context, input model.UpdateAPIInput) (*model.API, error) {
+	// validate input
+	var definition model.APIDefinition
+	json.Unmarshal([]byte(input.RawDefinition), &definition)
+
+	db := pg.Connect(&pg.Options{User: "postgres"})
+	defer db.Close()
+
+	currAPI := &model.API{ID: input.APIID}
+	err := db.Select(currAPI)
+	if err != nil {
+		return nil, err
+	}
+
+	if definition.Name != currAPI.Name {
+		return nil, errors.New("cannot change API name")
+	}
+	updatedAPI := &model.API{
+		ID:         input.APIID,
+		Definition: &definition,
+	}
+	db.Update(updatedAPI)
+	return updatedAPI, nil
+}
+
+func (r *mutationResolver) AuthAPI(ctx context.Context, input model.AuthAPIInput) (bool, error) {
+	db := pg.Connect(&pg.Options{User: "postgres"})
+	defer db.Close()
+
+	err := db.Insert(input)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func (r *mutationResolver) DeployAPI(ctx context.Context, input model.DeployAPIInput) (*model.Deploy, error) {
 	db := pg.Connect(&pg.Options{User: "postgres"})
 	defer db.Close()
 
@@ -43,6 +80,17 @@ func (r *mutationResolver) DeployAPI(ctx context.Context, input model.DeployAPI)
 		return nil, err
 	}
 	return deploy, nil
+}
+
+func (r *mutationResolver) AddTestToken(ctx context.Context, input model.TestToken) (bool, error) {
+	db := pg.Connect(&pg.Options{User: "postgres"})
+	defer db.Close()
+
+	err := db.Insert(input)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func (r *queryResolver) API(ctx context.Context, id string) (*model.API, error) {
@@ -70,6 +118,35 @@ func (r *queryResolver) Apis(ctx context.Context) ([]*model.API, error) {
 		res = append(res, &apis[i])
 	}
 	return res, nil
+}
+
+func (r *queryResolver) Auth(ctx context.Context, apiID string) (*model.Auth, error) {
+	db := pg.Connect(&pg.Options{User: "postgres"})
+	defer db.Close()
+
+	api := &model.AuthAPIInput{APIID: apiID}
+	err := db.Select(api)
+	if err != nil {
+		return nil, err
+	}
+
+	// return api, nil
+	return nil, nil
+}
+
+func (r *queryResolver) TestTokens(ctx context.Context, apiID string) ([]string, error) {
+	/*db := pg.Connect(&pg.Options{User: "postgres"})
+	defer db.Close()
+
+	var apis []model.API
+	db.Model(&apis).Select()
+
+	var res []*model.API
+	for i := 0; i < len(apis); i++ {
+		res = append(res, &apis[i])
+	}
+	return res, nil*/
+	return nil, nil
 }
 
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
