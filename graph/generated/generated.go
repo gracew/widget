@@ -57,7 +57,9 @@ type ComplexityRoot struct {
 	}
 
 	Auth struct {
+		APIID              func(childComplexity int) int
 		AuthenticationType func(childComplexity int) int
+		ID                 func(childComplexity int) int
 		ReadPolicy         func(childComplexity int) int
 		WritePolicy        func(childComplexity int) int
 	}
@@ -94,7 +96,7 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AddTestToken func(childComplexity int, input model.TestToken) int
+		AddTestToken func(childComplexity int, input model.TestTokenInput) int
 		AuthAPI      func(childComplexity int, input model.AuthAPIInput) int
 		DefineAPI    func(childComplexity int, input model.DefineAPIInput) int
 		DeployAPI    func(childComplexity int, input model.DeployAPIInput) int
@@ -111,12 +113,21 @@ type ComplexityRoot struct {
 		API        func(childComplexity int, id string) int
 		Apis       func(childComplexity int) int
 		Auth       func(childComplexity int, apiID string) int
-		TestTokens func(childComplexity int, apiID string) int
+		TestTokens func(childComplexity int) int
 	}
 
 	SortDefinition struct {
 		Field func(childComplexity int) int
 		Order func(childComplexity int) int
+	}
+
+	TestToken struct {
+		Label func(childComplexity int) int
+		Token func(childComplexity int) int
+	}
+
+	TestTokenResponse struct {
+		TestTokens func(childComplexity int) int
 	}
 }
 
@@ -125,13 +136,13 @@ type MutationResolver interface {
 	UpdateAPI(ctx context.Context, input model.UpdateAPIInput) (*model.API, error)
 	AuthAPI(ctx context.Context, input model.AuthAPIInput) (bool, error)
 	DeployAPI(ctx context.Context, input model.DeployAPIInput) (*model.Deploy, error)
-	AddTestToken(ctx context.Context, input model.TestToken) (bool, error)
+	AddTestToken(ctx context.Context, input model.TestTokenInput) (*model.TestToken, error)
 }
 type QueryResolver interface {
 	API(ctx context.Context, id string) (*model.API, error)
 	Apis(ctx context.Context) ([]*model.API, error)
 	Auth(ctx context.Context, apiID string) (*model.Auth, error)
-	TestTokens(ctx context.Context, apiID string) ([]string, error)
+	TestTokens(ctx context.Context) (*model.TestTokenResponse, error)
 }
 
 type executableSchema struct {
@@ -198,12 +209,26 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.APIDefinition.Operations(childComplexity), true
 
+	case "Auth.apiID":
+		if e.complexity.Auth.APIID == nil {
+			break
+		}
+
+		return e.complexity.Auth.APIID(childComplexity), true
+
 	case "Auth.authenticationType":
 		if e.complexity.Auth.AuthenticationType == nil {
 			break
 		}
 
 		return e.complexity.Auth.AuthenticationType(childComplexity), true
+
+	case "Auth.id":
+		if e.complexity.Auth.ID == nil {
+			break
+		}
+
+		return e.complexity.Auth.ID(childComplexity), true
 
 	case "Auth.readPolicy":
 		if e.complexity.Auth.ReadPolicy == nil {
@@ -362,7 +387,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.AddTestToken(childComplexity, args["input"].(model.TestToken)), true
+		return e.complexity.Mutation.AddTestToken(childComplexity, args["input"].(model.TestTokenInput)), true
 
 	case "Mutation.authAPI":
 		if e.complexity.Mutation.AuthAPI == nil {
@@ -469,12 +494,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		args, err := ec.field_Query_testTokens_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.TestTokens(childComplexity, args["apiID"].(string)), true
+		return e.complexity.Query.TestTokens(childComplexity), true
 
 	case "SortDefinition.field":
 		if e.complexity.SortDefinition.Field == nil {
@@ -489,6 +509,27 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.SortDefinition.Order(childComplexity), true
+
+	case "TestToken.label":
+		if e.complexity.TestToken.Label == nil {
+			break
+		}
+
+		return e.complexity.TestToken.Label(childComplexity), true
+
+	case "TestToken.token":
+		if e.complexity.TestToken.Token == nil {
+			break
+		}
+
+		return e.complexity.TestToken.Token(childComplexity), true
+
+	case "TestTokenResponse.testTokens":
+		if e.complexity.TestTokenResponse.TestTokens == nil {
+			break
+		}
+
+		return e.complexity.TestTokenResponse.TestTokens(childComplexity), true
 
 	}
 	return 0, false
@@ -637,6 +678,8 @@ type Constraint {
 }
 
 type Auth {
+  id: ID!
+  apiID: ID!
   authenticationType: AuthenticationType!
   readPolicy: AuthPolicy!
   writePolicy: AuthPolicy!
@@ -659,11 +702,13 @@ enum AuthPolicyType {
   CUSTOM
 }
 
-input AuthPolicyInput {
-  type: AuthPolicyType!
-  # type ATTRIBUTE_MATCH
-  userAttribute: String
-  objectAttribute: String
+type TestTokenResponse {
+  testTokens: [TestToken!]!
+}
+
+type TestToken {
+  label: String!
+  token: String!
 }
 
 type Query {
@@ -673,7 +718,7 @@ type Query {
 
   auth(apiID: ID!): Auth
 
-  testTokens(apiID: ID!): [String!]!
+  testTokens: TestTokenResponse!
 }
 
 input DefineAPIInput {
@@ -699,8 +744,14 @@ input AuthAPIInput {
   writePolicy: AuthPolicyInput!
 }
 
-input TestToken {
-  apiID: ID!
+input AuthPolicyInput {
+  type: AuthPolicyType!
+  # type ATTRIBUTE_MATCH
+  userAttribute: String
+  objectAttribute: String
+}
+
+input TestTokenInput {
   label: String!
   token: String!
 }
@@ -711,7 +762,7 @@ type Mutation {
   authAPI(input: AuthAPIInput!): Boolean!
   deployAPI(input: DeployAPIInput!): Deploy!
 
-  addTestToken(input: TestToken!): Boolean!
+  addTestToken(input: TestTokenInput!): TestToken!
 }
 `, BuiltIn: false},
 }
@@ -724,9 +775,9 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 func (ec *executionContext) field_Mutation_addTestToken_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 model.TestToken
+	var arg0 model.TestTokenInput
 	if tmp, ok := rawArgs["input"]; ok {
-		arg0, err = ec.unmarshalNTestToken2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐTestToken(ctx, tmp)
+		arg0, err = ec.unmarshalNTestTokenInput2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐTestTokenInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -820,20 +871,6 @@ func (ec *executionContext) field_Query_api_args(ctx context.Context, rawArgs ma
 }
 
 func (ec *executionContext) field_Query_auth_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 string
-	if tmp, ok := rawArgs["apiID"]; ok {
-		arg0, err = ec.unmarshalNID2string(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["apiID"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_testTokens_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 string
@@ -1119,6 +1156,74 @@ func (ec *executionContext) _APIDefinition_operations(ctx context.Context, field
 	res := resTmp.([]*model.OperationDefinition)
 	fc.Result = res
 	return ec.marshalNOperationDefinition2ᚕᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐOperationDefinitionᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Auth_id(ctx context.Context, field graphql.CollectedField, obj *model.Auth) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Auth",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Auth_apiID(ctx context.Context, field graphql.CollectedField, obj *model.Auth) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Auth",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.APIID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Auth_authenticationType(ctx context.Context, field graphql.CollectedField, obj *model.Auth) (ret graphql.Marshaler) {
@@ -2021,7 +2126,7 @@ func (ec *executionContext) _Mutation_addTestToken(ctx context.Context, field gr
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AddTestToken(rctx, args["input"].(model.TestToken))
+		return ec.resolvers.Mutation().AddTestToken(rctx, args["input"].(model.TestTokenInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2033,9 +2138,9 @@ func (ec *executionContext) _Mutation_addTestToken(ctx context.Context, field gr
 		}
 		return graphql.Null
 	}
-	res := resTmp.(bool)
+	res := resTmp.(*model.TestToken)
 	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+	return ec.marshalNTestToken2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐTestToken(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _OperationDefinition_type(ctx context.Context, field graphql.CollectedField, obj *model.OperationDefinition) (ret graphql.Marshaler) {
@@ -2259,16 +2364,9 @@ func (ec *executionContext) _Query_testTokens(ctx context.Context, field graphql
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Query_testTokens_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().TestTokens(rctx, args["apiID"].(string))
+		return ec.resolvers.Query().TestTokens(rctx)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2280,9 +2378,9 @@ func (ec *executionContext) _Query_testTokens(ctx context.Context, field graphql
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]string)
+	res := resTmp.(*model.TestTokenResponse)
 	fc.Result = res
-	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
+	return ec.marshalNTestTokenResponse2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐTestTokenResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2420,6 +2518,108 @@ func (ec *executionContext) _SortDefinition_order(ctx context.Context, field gra
 	res := resTmp.(model.SortOrder)
 	fc.Result = res
 	return ec.marshalNSortOrder2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐSortOrder(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TestToken_label(ctx context.Context, field graphql.CollectedField, obj *model.TestToken) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "TestToken",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Label, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TestToken_token(ctx context.Context, field graphql.CollectedField, obj *model.TestToken) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "TestToken",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Token, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TestTokenResponse_testTokens(ctx context.Context, field graphql.CollectedField, obj *model.TestTokenResponse) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "TestTokenResponse",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TestTokens, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.TestToken)
+	fc.Result = res
+	return ec.marshalNTestToken2ᚕᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐTestTokenᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
@@ -3585,18 +3785,12 @@ func (ec *executionContext) unmarshalInputDeployAPIInput(ctx context.Context, ob
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputTestToken(ctx context.Context, obj interface{}) (model.TestToken, error) {
-	var it model.TestToken
+func (ec *executionContext) unmarshalInputTestTokenInput(ctx context.Context, obj interface{}) (model.TestTokenInput, error) {
+	var it model.TestTokenInput
 	var asMap = obj.(map[string]interface{})
 
 	for k, v := range asMap {
 		switch k {
-		case "apiID":
-			var err error
-			it.APIID, err = ec.unmarshalNID2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
 		case "label":
 			var err error
 			it.Label, err = ec.unmarshalNString2string(ctx, v)
@@ -3737,6 +3931,16 @@ func (ec *executionContext) _Auth(ctx context.Context, sel ast.SelectionSet, obj
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Auth")
+		case "id":
+			out.Values[i] = ec._Auth_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "apiID":
+			out.Values[i] = ec._Auth_apiID(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "authenticationType":
 			out.Values[i] = ec._Auth_authenticationType(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -4090,6 +4294,65 @@ func (ec *executionContext) _SortDefinition(ctx context.Context, sel ast.Selecti
 			}
 		case "order":
 			out.Values[i] = ec._SortDefinition_order(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var testTokenImplementors = []string{"TestToken"}
+
+func (ec *executionContext) _TestToken(ctx context.Context, sel ast.SelectionSet, obj *model.TestToken) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, testTokenImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("TestToken")
+		case "label":
+			out.Values[i] = ec._TestToken_label(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "token":
+			out.Values[i] = ec._TestToken_token(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var testTokenResponseImplementors = []string{"TestTokenResponse"}
+
+func (ec *executionContext) _TestTokenResponse(ctx context.Context, sel ast.SelectionSet, obj *model.TestTokenResponse) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, testTokenResponseImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("TestTokenResponse")
+		case "testTokens":
+			out.Values[i] = ec._TestTokenResponse_testTokens(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -4720,37 +4983,73 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 	return res
 }
 
-func (ec *executionContext) unmarshalNString2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {
-	var vSlice []interface{}
-	if v != nil {
-		if tmp1, ok := v.([]interface{}); ok {
-			vSlice = tmp1
-		} else {
-			vSlice = []interface{}{v}
-		}
-	}
-	var err error
-	res := make([]string, len(vSlice))
-	for i := range vSlice {
-		res[i], err = ec.unmarshalNString2string(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
+func (ec *executionContext) marshalNTestToken2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐTestToken(ctx context.Context, sel ast.SelectionSet, v model.TestToken) graphql.Marshaler {
+	return ec._TestToken(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNString2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+func (ec *executionContext) marshalNTestToken2ᚕᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐTestTokenᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.TestToken) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
-	for i := range v {
-		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
 	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNTestToken2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐTestToken(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
 
+	}
+	wg.Wait()
 	return ret
 }
 
-func (ec *executionContext) unmarshalNTestToken2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐTestToken(ctx context.Context, v interface{}) (model.TestToken, error) {
-	return ec.unmarshalInputTestToken(ctx, v)
+func (ec *executionContext) marshalNTestToken2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐTestToken(ctx context.Context, sel ast.SelectionSet, v *model.TestToken) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._TestToken(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNTestTokenInput2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐTestTokenInput(ctx context.Context, v interface{}) (model.TestTokenInput, error) {
+	return ec.unmarshalInputTestTokenInput(ctx, v)
+}
+
+func (ec *executionContext) marshalNTestTokenResponse2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐTestTokenResponse(ctx context.Context, sel ast.SelectionSet, v model.TestTokenResponse) graphql.Marshaler {
+	return ec._TestTokenResponse(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNTestTokenResponse2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐTestTokenResponse(ctx context.Context, sel ast.SelectionSet, v *model.TestTokenResponse) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._TestTokenResponse(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNType2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐType(ctx context.Context, v interface{}) (model.Type, error) {

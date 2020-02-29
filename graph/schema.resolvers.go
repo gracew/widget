@@ -25,7 +25,10 @@ func (r *mutationResolver) DefineAPI(ctx context.Context, input model.DefineAPII
 		Name:       definition.Name,
 		Definition: &definition,
 	}
-	db.Insert(api)
+	err := db.Insert(api)
+	if err != nil {
+		return nil, err
+	}
 	return api, nil
 }
 
@@ -50,7 +53,10 @@ func (r *mutationResolver) UpdateAPI(ctx context.Context, input model.UpdateAPII
 		ID:         input.APIID,
 		Definition: &definition,
 	}
-	db.Update(updatedAPI)
+	err = db.Update(updatedAPI)
+	if err != nil {
+		return nil, err
+	}
 	return updatedAPI, nil
 }
 
@@ -58,7 +64,21 @@ func (r *mutationResolver) AuthAPI(ctx context.Context, input model.AuthAPIInput
 	db := pg.Connect(&pg.Options{User: "postgres"})
 	defer db.Close()
 
-	err := db.Insert(input)
+	err := db.Insert(&model.Auth{
+		ID:                 uuid.New().String(),
+		APIID:              input.APIID,
+		AuthenticationType: input.AuthenticationType,
+		ReadPolicy: &model.AuthPolicy{
+			Type:            input.ReadPolicy.Type,
+			UserAttribute:   input.ReadPolicy.UserAttribute,
+			ObjectAttribute: input.ReadPolicy.ObjectAttribute,
+		},
+		WritePolicy: &model.AuthPolicy{
+			Type:            input.WritePolicy.Type,
+			UserAttribute:   input.WritePolicy.UserAttribute,
+			ObjectAttribute: input.WritePolicy.ObjectAttribute,
+		},
+	})
 	if err != nil {
 		return false, err
 	}
@@ -82,15 +102,20 @@ func (r *mutationResolver) DeployAPI(ctx context.Context, input model.DeployAPII
 	return deploy, nil
 }
 
-func (r *mutationResolver) AddTestToken(ctx context.Context, input model.TestToken) (bool, error) {
+func (r *mutationResolver) AddTestToken(ctx context.Context, input model.TestTokenInput) (*model.TestToken, error) {
 	db := pg.Connect(&pg.Options{User: "postgres"})
 	defer db.Close()
 
-	err := db.Insert(input)
-	if err != nil {
-		return false, err
+	token := &model.TestToken{
+		// TODO(gracew): enforce label uniqueness?
+		Label: input.Label,
+		Token: input.Token,
 	}
-	return true, nil
+	err := db.Insert(token)
+	if err != nil {
+		return nil, err
+	}
+	return token, nil
 }
 
 func (r *queryResolver) API(ctx context.Context, id string) (*model.API, error) {
@@ -124,29 +149,30 @@ func (r *queryResolver) Auth(ctx context.Context, apiID string) (*model.Auth, er
 	db := pg.Connect(&pg.Options{User: "postgres"})
 	defer db.Close()
 
-	api := &model.AuthAPIInput{APIID: apiID}
-	err := db.Select(api)
+	/*var auths []model.Auth
+	err := db.Model(&auths).WhereIn("apiid IN (?)", []string{apiID}).Select()*/
+	auth := &model.Auth{APIID: apiID}
+	err := db.Select(auth)
 	if err != nil {
-		return nil, err
+		// it's probably a NoRows error, sigh
+		return nil, nil
 	}
 
-	// return api, nil
-	return nil, nil
+	return auth, nil
 }
 
-func (r *queryResolver) TestTokens(ctx context.Context, apiID string) ([]string, error) {
-	/*db := pg.Connect(&pg.Options{User: "postgres"})
+func (r *queryResolver) TestTokens(ctx context.Context) (*model.TestTokenResponse, error) {
+	db := pg.Connect(&pg.Options{User: "postgres"})
 	defer db.Close()
 
-	var apis []model.API
-	db.Model(&apis).Select()
+	var tokens []model.TestToken
+	db.Model(&tokens).Select()
 
-	var res []*model.API
-	for i := 0; i < len(apis); i++ {
-		res = append(res, &apis[i])
+	var res []*model.TestToken
+	for i := 0; i < len(tokens); i++ {
+		res = append(res, &tokens[i])
 	}
-	return res, nil*/
-	return nil, nil
+	return &model.TestTokenResponse{TestTokens: res}, nil
 }
 
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }

@@ -81,6 +81,8 @@ type Constraint {
 }
 
 type Auth {
+  id: ID!
+  apiID: ID!
   authenticationType: AuthenticationType!
   readPolicy: AuthPolicy!
   writePolicy: AuthPolicy!
@@ -103,11 +105,13 @@ enum AuthPolicyType {
   CUSTOM
 }
 
-input AuthPolicyInput {
-  type: AuthPolicyType!
-  # type ATTRIBUTE_MATCH
-  userAttribute: String
-  objectAttribute: String
+type TestTokenResponse {
+  testTokens: [TestToken!]!
+}
+
+type TestToken {
+  label: String!
+  token: String!
 }
 
 type Query {
@@ -117,7 +121,7 @@ type Query {
 
   auth(apiID: ID!): Auth
 
-  testTokens(apiID: ID!): [String!]!
+  testTokens: TestTokenResponse!
 }
 
 input DefineAPIInput {
@@ -143,8 +147,14 @@ input AuthAPIInput {
   writePolicy: AuthPolicyInput!
 }
 
-input TestToken {
-  apiID: ID!
+input AuthPolicyInput {
+  type: AuthPolicyType!
+  # type ATTRIBUTE_MATCH
+  userAttribute: String
+  objectAttribute: String
+}
+
+input TestTokenInput {
   label: String!
   token: String!
 }
@@ -155,5 +165,5 @@ type Mutation {
   authAPI(input: AuthAPIInput!): Boolean!
   deployAPI(input: DeployAPIInput!): Deploy!
 
-  addTestToken(input: TestToken!): Boolean!
+  addTestToken(input: TestTokenInput!): TestToken!
 }

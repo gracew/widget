@@ -56,7 +56,7 @@ func main() {
 }
 
 func createSchema(db *pg.DB) error {
-	for _, model := range []interface{}{(*model.API)(nil), (*model.Deploy)(nil), (*model.APIAuth)(nil), (*model.TestToken)(nil)} {
+	for _, model := range []interface{}{(*model.API)(nil), (*model.Deploy)(nil), (*model.Auth)(nil), (*model.TestToken)(nil)} {
 		err := db.CreateTable(model, &orm.CreateTableOptions{
 			IfNotExists: true,
 		})

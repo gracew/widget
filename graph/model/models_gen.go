@@ -22,6 +22,8 @@ type APIDefinition struct {
 }
 
 type Auth struct {
+	ID                 string             `json:"id"`
+	APIID              string             `json:"apiID"`
 	AuthenticationType AuthenticationType `json:"authenticationType"`
 	ReadPolicy         *AuthPolicy        `json:"readPolicy"`
 	WritePolicy        *AuthPolicy        `json:"writePolicy"`
@@ -92,9 +94,17 @@ type SortDefinition struct {
 }
 
 type TestToken struct {
-	APIID string `json:"apiID"`
 	Label string `json:"label"`
 	Token string `json:"token"`
+}
+
+type TestTokenInput struct {
+	Label string `json:"label"`
+	Token string `json:"token"`
+}
+
+type TestTokenResponse struct {
+	TestTokens []*TestToken `json:"testTokens"`
 }
 
 type UpdateAPIInput struct {
