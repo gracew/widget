@@ -9,13 +9,18 @@ import (
 	"strings"
 )
 
-type parseRes struct {
+type CreateRes struct {
 	CreatedAt string `json:"createdAt"`
 	ObjectID  string `json:"objectId"`
 }
 
-type createdBy struct {
-	CreatedBy string `json:"createdBy`
+type ObjectRes struct {
+	*CreateRes
+	CreatedBy string `json:"createdBy"`
+}
+
+type ListRes struct {
+	Results []ObjectRes `json:"results"`
 }
 
 func GetUserId(parseToken string) (string, error) {
@@ -30,7 +35,7 @@ func GetUserId(parseToken string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	var parseRes parseRes
+	var parseRes CreateRes
 	err = json.NewDecoder(res.Body).Decode(&parseRes)
 	if err != nil {
 		return "", err
@@ -38,28 +43,38 @@ func GetUserId(parseToken string) (string, error) {
 	return parseRes.ObjectID, nil
 }
 
-func CreateObject(apiID string, env string, req map[string]interface{}) ([]byte, error) {
+func CreateObject(apiID string, env string, req map[string]interface{}) (*CreateRes, error) {
 	// TODO(gracew): don't hardcode this
 	marshaled, err := json.Marshal(req)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	parseReq, err := http.NewRequest("POST", "http://localhost:1337/parse/classes/"+parseClassName(apiID, env), bytes.NewReader(marshaled))
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	parseReq.Header.Add("X-Parse-Application-Id", "appId")
 	parseReq.Header.Add("Content-type", "application/json")
 	client := &http.Client{}
-	parseRes, err := client.Do(parseReq)
+	res, err := client.Do(parseReq)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	return ioutil.ReadAll(parseRes.Body)
+	bytes, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var parseRes CreateRes;
+	err = json.Unmarshal(bytes, &parseRes)
+	if err != nil {
+		return nil, err
+	}
+	return &parseRes, nil
 }
 
-func GetObject(apiID string, env string, objectID string) ([]byte, error) {
+func GetObject(apiID string, env string, objectID string) (*ObjectRes, error) {
 	req, err := http.NewRequest("GET", "http://localhost:1337/parse/classes/"+parseClassName(apiID, env)+"/"+objectID, nil)
 	if err != nil {
 		panic(err)
@@ -70,10 +85,21 @@ func GetObject(apiID string, env string, objectID string) ([]byte, error) {
 	if err != nil {
 		panic(err)
 	}
-	return ioutil.ReadAll(res.Body)
+
+	bytes, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var parseRes ObjectRes;
+	err = json.Unmarshal(bytes, &parseRes)
+	if err != nil {
+		return nil, err
+	}
+	return &parseRes, nil
 }
 
-func ListObjects(apiID string, env string, pageSize string) ([]byte, error) {
+func ListObjects(apiID string, env string, pageSize string) (*ListRes, error) {
 	data := "limit=" + pageSize
 	req, err := http.NewRequest("GET", "http://localhost:1337/parse/classes/"+parseClassName(apiID, env), strings.NewReader(data))
 	if err != nil {
@@ -86,7 +112,18 @@ func ListObjects(apiID string, env string, pageSize string) ([]byte, error) {
 	if err != nil {
 		panic(err)
 	}
-	return ioutil.ReadAll(res.Body)
+
+	bytes, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+	var parseRes ListRes;
+	err = json.Unmarshal(bytes, &parseRes)
+	if err != nil {
+		return nil, err
+	}
+
+	return &parseRes, nil
 }
 
 func parseClassName(apiID string, env string) string {

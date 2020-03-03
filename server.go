@@ -15,6 +15,7 @@ import (
 	"github.com/gracew/widget/graph/generated"
 	"github.com/gracew/widget/graph/model"
 	"github.com/gracew/widget/parse"
+	"github.com/gracew/widget/store"
 	"github.com/rs/cors"
 )
 
@@ -71,7 +72,6 @@ func createHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodOptions {
 		return
 	}
-	vars := mux.Vars(r)
 
 	// get the userId
 	parseToken := r.Header["X-Parse-Session-Token"][0]
@@ -85,12 +85,17 @@ func createHandler(w http.ResponseWriter, r *http.Request) {
 	err = json.NewDecoder(r.Body).Decode(&originalReq)
 	originalReq["createdBy"] = userID
 
-	// return response
+	// delegate to parse
+	vars := mux.Vars(r)
 	res, err := parse.CreateObject(vars["apiID"], vars["env"], originalReq)
 	if err != nil {
 		panic(err)
 	}
-	w.Write(res)
+
+	err = json.NewEncoder(w).Encode(res)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func readHandler(w http.ResponseWriter, r *http.Request) {
@@ -99,32 +104,37 @@ func readHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodOptions {
 		return
 	}
-	vars := mux.Vars(r)
-
-	res, err := parse.GetObject(vars["apiID"], vars["env"], vars["id"])
-	if err != nil {
-		panic(err)
-	}
-	w.Write(res)
 
 	// get the userId
-	// TODO(gracew): do this in parallel as the object fetch
-	/*parseToken := r.Header["X-Parse-Session-Token"][0]
+	parseToken := r.Header["X-Parse-Session-Token"][0]
 	userID, err := parse.GetUserId(parseToken)
 	if err != nil {
 		panic(err)
 	}
 
-	// get the authorization policy. if CREATED_BY, then check userId == res.createdBy
+	// delegate to parse
+	vars := mux.Vars(r)
+	res, err := parse.GetObject(vars["apiID"], vars["env"], vars["id"])
+	if err != nil {
+		panic(err)
+	}
+
+	// fetch the authorization policy
+	// TODO(gracew): parallelize some of these requests
 	auth, err := store.Auth(vars["apiID"])
 	if err != nil {
 		panic(err)
 	}
 
 	if auth.ReadPolicy.Type == model.AuthPolicyTypeCreatedBy {
-
+		if userID != res.CreatedBy {
+			json.NewEncoder(w).Encode(&unauthorized{Message: "unauthorized"})
+			return
+		}
 	}
-	var createdBy createdBy*/
+	// TODO(gracew): support other authz policies
+
+	json.NewEncoder(w).Encode(&res)
 }
 
 func listHandler(w http.ResponseWriter, r *http.Request) {
@@ -133,6 +143,15 @@ func listHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodOptions {
 		return
 	}
+
+	// get the userId
+	parseToken := r.Header["X-Parse-Session-Token"][0]
+	userID, err := parse.GetUserId(parseToken)
+	if err != nil {
+		panic(err)
+	}
+
+	// delegate to parse
 	pageSizes, ok := r.URL.Query()["pageSize"]
 	pageSize := "100"
 	if ok && len(pageSizes[0]) >= 1 {
@@ -143,5 +162,31 @@ func listHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		panic(err)
 	}
-	w.Write(res)
+
+	// fetch the authorization policy
+	// TODO(gracew): parallelize some of these requests
+	auth, err := store.Auth(vars["apiID"])
+	if err != nil {
+		panic(err)
+	}
+
+	var filtered []parse.ObjectRes
+	if auth.ReadPolicy.Type == model.AuthPolicyTypeCreatedBy {
+		for i := 0; i < len(res.Results); i++ {
+			if userID == res.Results[i].CreatedBy {
+				filtered = append(filtered, res.Results[i])
+			}
+		}
+	}
+	// TODO(gracew): support other authz policies
+
+	json.NewEncoder(w).Encode(&parse.ListRes{Results: filtered})
+}
+
+type createdBy struct {
+	CreatedBy string `json:"createdBy"`
+}
+
+type unauthorized struct {
+	Message string `json:"message"`
 }

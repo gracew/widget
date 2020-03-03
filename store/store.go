@@ -39,14 +39,15 @@ func Auth(apiID string) (*model.Auth, error) {
 	db := pg.Connect(&pg.Options{User: "postgres"})
 	defer db.Close()
 
-	/*var auths []model.Auth
-	err := db.Model(&auths).WhereIn("apiid IN (?)", []string{apiID}).Select()*/
-	auth := &model.Auth{APIID: apiID}
-	err := db.Select(auth)
+	var auths []model.Auth
+	err := db.Model(&auths).WhereIn("apiid IN (?)", []string{apiID}).Select()
 	if err != nil {
 		// it's probably a NoRows error, sigh
-		return nil, nil
+		return nil, err
 	}
 
-	return auth, nil
+	if len(auths) == 0 {
+		return nil, nil
+	}
+	return &auths[0], nil
 }
