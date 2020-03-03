@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/gracew/widget/graph/generated"
 	"github.com/gracew/widget/graph/model"
+	"github.com/gracew/widget/store"
 )
 
 func (r *mutationResolver) DefineAPI(ctx context.Context, input model.DefineAPIInput) (*model.API, error) {
@@ -119,46 +120,15 @@ func (r *mutationResolver) AddTestToken(ctx context.Context, input model.TestTok
 }
 
 func (r *queryResolver) API(ctx context.Context, id string) (*model.API, error) {
-	db := pg.Connect(&pg.Options{User: "postgres"})
-	defer db.Close()
-
-	api := &model.API{ID: id}
-	err := db.Select(api)
-	if err != nil {
-		return nil, err
-	}
-
-	return api, nil
+	return store.API(id)
 }
 
 func (r *queryResolver) Apis(ctx context.Context) ([]*model.API, error) {
-	db := pg.Connect(&pg.Options{User: "postgres"})
-	defer db.Close()
-
-	var apis []model.API
-	db.Model(&apis).Select()
-
-	var res []*model.API
-	for i := 0; i < len(apis); i++ {
-		res = append(res, &apis[i])
-	}
-	return res, nil
+	return store.Apis()
 }
 
 func (r *queryResolver) Auth(ctx context.Context, apiID string) (*model.Auth, error) {
-	db := pg.Connect(&pg.Options{User: "postgres"})
-	defer db.Close()
-
-	/*var auths []model.Auth
-	err := db.Model(&auths).WhereIn("apiid IN (?)", []string{apiID}).Select()*/
-	auth := &model.Auth{APIID: apiID}
-	err := db.Select(auth)
-	if err != nil {
-		// it's probably a NoRows error, sigh
-		return nil, nil
-	}
-
-	return auth, nil
+	return store.Auth(apiID)
 }
 
 func (r *queryResolver) TestTokens(ctx context.Context) (*model.TestTokenResponse, error) {
