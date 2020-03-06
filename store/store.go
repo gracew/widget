@@ -50,3 +50,38 @@ func Auth(apiID string) (*model.Auth, error) {
 	}
 	return &auths[0], nil
 }
+
+func CustomLogic(apiID string) ([]*model.CustomLogic, error) {
+	db := pg.Connect(&pg.Options{User: "postgres"})
+	defer db.Close()
+
+	var models []model.CustomLogic
+	err := db.Model(&models).WhereIn("apiid IN (?)", []string{apiID}).Select()
+	if err != nil {
+		return nil, err
+	}
+
+	var res []*model.CustomLogic
+	for i := 0; i < len(models); i++ {
+		res = append(res, &models[i])
+	}
+
+	return res, nil
+}
+
+func CustomLogicByOperation(apiID string, operationType model.OperationType) (*model.CustomLogic, error) {
+	db := pg.Connect(&pg.Options{User: "postgres"})
+	defer db.Close()
+
+	var models []model.CustomLogic
+	err := db.Model(&models).WhereIn("apiid IN (?)", []string{apiID}).WhereIn("operation_type IN (?)", []model.OperationType{operationType}).Select()
+	if err != nil {
+		return nil, err
+	}
+
+	if len(models) == 0 {
+		return nil, nil
+	}
+
+	return &models[0], nil
+}

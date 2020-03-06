@@ -150,21 +150,7 @@ func (r *queryResolver) Auth(ctx context.Context, apiID string) (*model.Auth, er
 }
 
 func (r *queryResolver) CustomLogic(ctx context.Context, apiID string) ([]*model.CustomLogic, error) {
-	db := pg.Connect(&pg.Options{User: "postgres"})
-	defer db.Close()
-
-	var models []model.CustomLogic
-	err := db.Model(&models).WhereIn("apiid IN (?)", []string{apiID}).Select()
-	if err != nil {
-		return nil, err
-	}
-
-	var res []*model.CustomLogic
-	for i := 0; i < len(models); i++ {
-		res = append(res, &models[i])
-	}
-
-	return res, nil
+	return store.CustomLogic(apiID)
 }
 
 func (r *queryResolver) TestTokens(ctx context.Context) (*model.TestTokenResponse, error) {

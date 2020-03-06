@@ -14,10 +14,7 @@ type CreateRes struct {
 	ObjectID  string `json:"objectId"`
 }
 
-type ObjectRes struct {
-	*CreateRes
-	CreatedBy string `json:"createdBy"`
-}
+type ObjectRes = map[string]interface{}
 
 type ListRes struct {
 	Results []ObjectRes `json:"results"`

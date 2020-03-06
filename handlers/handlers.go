@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -24,17 +25,40 @@ func CreateHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	// add createdBy to the original req
-	var originalReq map[string]interface{}
-	err = json.NewDecoder(r.Body).Decode(&originalReq)
-	originalReq["createdBy"] = userID
-
-	// delegate to parse
+	// execute beforeSave logic
 	vars := mux.Vars(r)
-	res, err := parse.CreateObject(vars["apiID"], vars["env"], originalReq)
+	apiID := vars["apiID"]
+
+	customLogic, err := store.CustomLogicByOperation(apiID, model.OperationTypeCreate)
 	if err != nil {
 		panic(err)
 	}
+
+	originalReq, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		panic(err)
+	}
+
+	modifiedReqBytes := originalReq;
+	if (customLogic != nil && customLogic.BeforeSave != nil) {
+		modifiedReqBytes, err = Execute(originalReq, *customLogic.BeforeSave)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	// add createdBy to the original req
+	var modifiedReq map[string]interface{}
+	err = json.Unmarshal(modifiedReqBytes, &modifiedReq)
+	modifiedReq["createdBy"] = userID
+
+	// delegate to parse
+	res, err := parse.CreateObject(apiID, vars["env"], modifiedReq)
+	if err != nil {
+		panic(err)
+	}
+
+	// execute afterSave logic
 
 	err = json.NewEncoder(w).Encode(res)
 	if err != nil {
@@ -71,7 +95,7 @@ func ReadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if auth.ReadPolicy.Type == model.AuthPolicyTypeCreatedBy {
-		if userID != res.CreatedBy {
+		if userID != (*res)["createdBy"] {
 			json.NewEncoder(w).Encode(&unauthorized{Message: "unauthorized"})
 			return
 		}
@@ -117,7 +141,7 @@ func ListHandler(w http.ResponseWriter, r *http.Request) {
 	var filtered []parse.ObjectRes
 	if auth.ReadPolicy.Type == model.AuthPolicyTypeCreatedBy {
 		for i := 0; i < len(res.Results); i++ {
-			if userID == res.Results[i].CreatedBy {
+			if userID == res.Results[i]["createdBy"] {
 				filtered = append(filtered, res.Results[i])
 			}
 		}
