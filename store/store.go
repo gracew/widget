@@ -42,7 +42,6 @@ func Auth(apiID string) (*model.Auth, error) {
 	var auths []model.Auth
 	err := db.Model(&auths).WhereIn("apiid IN (?)", []string{apiID}).Select()
 	if err != nil {
-		// it's probably a NoRows error, sigh
 		return nil, err
 	}
 
