@@ -43,8 +43,14 @@ enum OperationType {
 type CustomLogic {
   apiID: ID!
   operationType: OperationType!
+  runtime: CustomLogicRuntime!
   beforeSave: String
   afterSave: String
+}
+
+enum CustomLogicRuntime {
+  NODE
+  PYTHON
 }
 
 type SortDefinition {
@@ -165,6 +171,7 @@ input AuthPolicyInput {
 input SaveCustomLogicInput {
   apiID: ID!
   operationType: OperationType!
+  runtime: CustomLogicRuntime!
   beforeSave: String
   afterSave: String
 }
