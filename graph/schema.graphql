@@ -40,6 +40,13 @@ enum OperationType {
   LIST
 }
 
+type CustomLogic {
+  apiID: ID!
+  operationType: OperationType!
+  beforeSave: String
+  afterSave: String
+}
+
 type SortDefinition {
   field: String!
   order: SortOrder!
@@ -120,6 +127,7 @@ type Query {
   apis: [API!]!
 
   auth(apiID: ID!): Auth
+  customLogic(apiID: ID!): [CustomLogic!]!
 
   testTokens: TestTokenResponse!
 }
@@ -154,6 +162,13 @@ input AuthPolicyInput {
   objectAttribute: String
 }
 
+input SaveCustomLogicInput {
+  apiID: ID!
+  operationType: OperationType!
+  beforeSave: String
+  afterSave: String
+}
+
 input TestTokenInput {
   label: String!
   token: String!
@@ -164,6 +179,7 @@ type Mutation {
   updateAPI(input: UpdateAPIInput!): API!
   authAPI(input: AuthAPIInput!): Boolean!
   deployAPI(input: DeployAPIInput!): Deploy!
+  saveCustomLogic(input: SaveCustomLogicInput!): Boolean!
 
   addTestToken(input: TestTokenInput!): TestToken!
 }

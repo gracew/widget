@@ -80,6 +80,13 @@ type ComplexityRoot struct {
 		Regex     func(childComplexity int) int
 	}
 
+	CustomLogic struct {
+		APIID         func(childComplexity int) int
+		AfterSave     func(childComplexity int) int
+		BeforeSave    func(childComplexity int) int
+		OperationType func(childComplexity int) int
+	}
+
 	Deploy struct {
 		APIID func(childComplexity int) int
 		Env   func(childComplexity int) int
@@ -96,11 +103,12 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AddTestToken func(childComplexity int, input model.TestTokenInput) int
-		AuthAPI      func(childComplexity int, input model.AuthAPIInput) int
-		DefineAPI    func(childComplexity int, input model.DefineAPIInput) int
-		DeployAPI    func(childComplexity int, input model.DeployAPIInput) int
-		UpdateAPI    func(childComplexity int, input model.UpdateAPIInput) int
+		AddTestToken    func(childComplexity int, input model.TestTokenInput) int
+		AuthAPI         func(childComplexity int, input model.AuthAPIInput) int
+		DefineAPI       func(childComplexity int, input model.DefineAPIInput) int
+		DeployAPI       func(childComplexity int, input model.DeployAPIInput) int
+		SaveCustomLogic func(childComplexity int, input model.SaveCustomLogicInput) int
+		UpdateAPI       func(childComplexity int, input model.UpdateAPIInput) int
 	}
 
 	OperationDefinition struct {
@@ -110,10 +118,11 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		API        func(childComplexity int, id string) int
-		Apis       func(childComplexity int) int
-		Auth       func(childComplexity int, apiID string) int
-		TestTokens func(childComplexity int) int
+		API         func(childComplexity int, id string) int
+		Apis        func(childComplexity int) int
+		Auth        func(childComplexity int, apiID string) int
+		CustomLogic func(childComplexity int, apiID string) int
+		TestTokens  func(childComplexity int) int
 	}
 
 	SortDefinition struct {
@@ -136,12 +145,14 @@ type MutationResolver interface {
 	UpdateAPI(ctx context.Context, input model.UpdateAPIInput) (*model.API, error)
 	AuthAPI(ctx context.Context, input model.AuthAPIInput) (bool, error)
 	DeployAPI(ctx context.Context, input model.DeployAPIInput) (*model.Deploy, error)
+	SaveCustomLogic(ctx context.Context, input model.SaveCustomLogicInput) (bool, error)
 	AddTestToken(ctx context.Context, input model.TestTokenInput) (*model.TestToken, error)
 }
 type QueryResolver interface {
 	API(ctx context.Context, id string) (*model.API, error)
 	Apis(ctx context.Context) ([]*model.API, error)
 	Auth(ctx context.Context, apiID string) (*model.Auth, error)
+	CustomLogic(ctx context.Context, apiID string) ([]*model.CustomLogic, error)
 	TestTokens(ctx context.Context) (*model.TestTokenResponse, error)
 }
 
@@ -314,6 +325,34 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Constraint.Regex(childComplexity), true
 
+	case "CustomLogic.apiID":
+		if e.complexity.CustomLogic.APIID == nil {
+			break
+		}
+
+		return e.complexity.CustomLogic.APIID(childComplexity), true
+
+	case "CustomLogic.afterSave":
+		if e.complexity.CustomLogic.AfterSave == nil {
+			break
+		}
+
+		return e.complexity.CustomLogic.AfterSave(childComplexity), true
+
+	case "CustomLogic.beforeSave":
+		if e.complexity.CustomLogic.BeforeSave == nil {
+			break
+		}
+
+		return e.complexity.CustomLogic.BeforeSave(childComplexity), true
+
+	case "CustomLogic.operationType":
+		if e.complexity.CustomLogic.OperationType == nil {
+			break
+		}
+
+		return e.complexity.CustomLogic.OperationType(childComplexity), true
+
 	case "Deploy.apiID":
 		if e.complexity.Deploy.APIID == nil {
 			break
@@ -425,6 +464,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.DeployAPI(childComplexity, args["input"].(model.DeployAPIInput)), true
 
+	case "Mutation.saveCustomLogic":
+		if e.complexity.Mutation.SaveCustomLogic == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_saveCustomLogic_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.SaveCustomLogic(childComplexity, args["input"].(model.SaveCustomLogicInput)), true
+
 	case "Mutation.updateAPI":
 		if e.complexity.Mutation.UpdateAPI == nil {
 			break
@@ -488,6 +539,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Auth(childComplexity, args["apiID"].(string)), true
+
+	case "Query.customLogic":
+		if e.complexity.Query.CustomLogic == nil {
+			break
+		}
+
+		args, err := ec.field_Query_customLogic_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.CustomLogic(childComplexity, args["apiID"].(string)), true
 
 	case "Query.testTokens":
 		if e.complexity.Query.TestTokens == nil {
@@ -637,6 +700,13 @@ enum OperationType {
   LIST
 }
 
+type CustomLogic {
+  apiID: ID!
+  operationType: OperationType!
+  beforeSave: String
+  afterSave: String
+}
+
 type SortDefinition {
   field: String!
   order: SortOrder!
@@ -717,6 +787,7 @@ type Query {
   apis: [API!]!
 
   auth(apiID: ID!): Auth
+  customLogic(apiID: ID!): [CustomLogic!]!
 
   testTokens: TestTokenResponse!
 }
@@ -751,6 +822,13 @@ input AuthPolicyInput {
   objectAttribute: String
 }
 
+input SaveCustomLogicInput {
+  apiID: ID!
+  operationType: OperationType!
+  beforeSave: String
+  afterSave: String
+}
+
 input TestTokenInput {
   label: String!
   token: String!
@@ -761,6 +839,7 @@ type Mutation {
   updateAPI(input: UpdateAPIInput!): API!
   authAPI(input: AuthAPIInput!): Boolean!
   deployAPI(input: DeployAPIInput!): Deploy!
+  saveCustomLogic(input: SaveCustomLogicInput!): Boolean!
 
   addTestToken(input: TestTokenInput!): TestToken!
 }
@@ -828,6 +907,20 @@ func (ec *executionContext) field_Mutation_deployAPI_args(ctx context.Context, r
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_saveCustomLogic_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.SaveCustomLogicInput
+	if tmp, ok := rawArgs["input"]; ok {
+		arg0, err = ec.unmarshalNSaveCustomLogicInput2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐSaveCustomLogicInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_updateAPI_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -871,6 +964,20 @@ func (ec *executionContext) field_Query_api_args(ctx context.Context, rawArgs ma
 }
 
 func (ec *executionContext) field_Query_auth_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["apiID"]; ok {
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["apiID"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_customLogic_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 string
@@ -1641,6 +1748,136 @@ func (ec *executionContext) _Constraint_maxLength(ctx context.Context, field gra
 	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _CustomLogic_apiID(ctx context.Context, field graphql.CollectedField, obj *model.CustomLogic) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "CustomLogic",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.APIID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _CustomLogic_operationType(ctx context.Context, field graphql.CollectedField, obj *model.CustomLogic) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "CustomLogic",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.OperationType, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.OperationType)
+	fc.Result = res
+	return ec.marshalNOperationType2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐOperationType(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _CustomLogic_beforeSave(ctx context.Context, field graphql.CollectedField, obj *model.CustomLogic) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "CustomLogic",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.BeforeSave, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _CustomLogic_afterSave(ctx context.Context, field graphql.CollectedField, obj *model.CustomLogic) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "CustomLogic",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AfterSave, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Deploy_id(ctx context.Context, field graphql.CollectedField, obj *model.Deploy) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2102,6 +2339,47 @@ func (ec *executionContext) _Mutation_deployAPI(ctx context.Context, field graph
 	return ec.marshalNDeploy2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐDeploy(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Mutation_saveCustomLogic(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_saveCustomLogic_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().SaveCustomLogic(rctx, args["input"].(model.SaveCustomLogicInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Mutation_addTestToken(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2347,6 +2625,47 @@ func (ec *executionContext) _Query_auth(ctx context.Context, field graphql.Colle
 	res := resTmp.(*model.Auth)
 	fc.Result = res
 	return ec.marshalOAuth2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐAuth(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_customLogic(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Query",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_customLogic_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().CustomLogic(rctx, args["apiID"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.CustomLogic)
+	fc.Result = res
+	return ec.marshalNCustomLogic2ᚕᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐCustomLogicᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_testTokens(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3785,6 +4104,42 @@ func (ec *executionContext) unmarshalInputDeployAPIInput(ctx context.Context, ob
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputSaveCustomLogicInput(ctx context.Context, obj interface{}) (model.SaveCustomLogicInput, error) {
+	var it model.SaveCustomLogicInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "apiID":
+			var err error
+			it.APIID, err = ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "operationType":
+			var err error
+			it.OperationType, err = ec.unmarshalNOperationType2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐOperationType(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "beforeSave":
+			var err error
+			it.BeforeSave, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "afterSave":
+			var err error
+			it.AfterSave, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputTestTokenInput(ctx context.Context, obj interface{}) (model.TestTokenInput, error) {
 	var it model.TestTokenInput
 	var asMap = obj.(map[string]interface{})
@@ -4034,6 +4389,42 @@ func (ec *executionContext) _Constraint(ctx context.Context, sel ast.SelectionSe
 	return out
 }
 
+var customLogicImplementors = []string{"CustomLogic"}
+
+func (ec *executionContext) _CustomLogic(ctx context.Context, sel ast.SelectionSet, obj *model.CustomLogic) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, customLogicImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CustomLogic")
+		case "apiID":
+			out.Values[i] = ec._CustomLogic_apiID(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "operationType":
+			out.Values[i] = ec._CustomLogic_operationType(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "beforeSave":
+			out.Values[i] = ec._CustomLogic_beforeSave(ctx, field, obj)
+		case "afterSave":
+			out.Values[i] = ec._CustomLogic_afterSave(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var deployImplementors = []string{"Deploy"}
 
 func (ec *executionContext) _Deploy(ctx context.Context, sel ast.SelectionSet, obj *model.Deploy) graphql.Marshaler {
@@ -4149,6 +4540,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "saveCustomLogic":
+			out.Values[i] = ec._Mutation_saveCustomLogic(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "addTestToken":
 			out.Values[i] = ec._Mutation_addTestToken(ctx, field)
 			if out.Values[i] == graphql.Null {
@@ -4245,6 +4641,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_auth(ctx, field)
+				return res
+			})
+		case "customLogic":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_customLogic(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			})
 		case "testTokens":
@@ -4753,6 +5163,57 @@ func (ec *executionContext) marshalNConstraint2ᚖgithubᚗcomᚋgracewᚋwidget
 	return ec._Constraint(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNCustomLogic2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐCustomLogic(ctx context.Context, sel ast.SelectionSet, v model.CustomLogic) graphql.Marshaler {
+	return ec._CustomLogic(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNCustomLogic2ᚕᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐCustomLogicᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.CustomLogic) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNCustomLogic2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐCustomLogic(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) marshalNCustomLogic2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐCustomLogic(ctx context.Context, sel ast.SelectionSet, v *model.CustomLogic) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._CustomLogic(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNDefineAPIInput2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐDefineAPIInput(ctx context.Context, v interface{}) (model.DefineAPIInput, error) {
 	return ec.unmarshalInputDefineAPIInput(ctx, v)
 }
@@ -4944,6 +5405,10 @@ func (ec *executionContext) unmarshalNOperationType2githubᚗcomᚋgracewᚋwidg
 
 func (ec *executionContext) marshalNOperationType2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐOperationType(ctx context.Context, sel ast.SelectionSet, v model.OperationType) graphql.Marshaler {
 	return v
+}
+
+func (ec *executionContext) unmarshalNSaveCustomLogicInput2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐSaveCustomLogicInput(ctx context.Context, v interface{}) (model.SaveCustomLogicInput, error) {
+	return ec.unmarshalInputSaveCustomLogicInput(ctx, v)
 }
 
 func (ec *executionContext) marshalNSortDefinition2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐSortDefinition(ctx context.Context, sel ast.SelectionSet, v model.SortDefinition) graphql.Marshaler {

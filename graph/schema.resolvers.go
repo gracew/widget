@@ -103,6 +103,24 @@ func (r *mutationResolver) DeployAPI(ctx context.Context, input model.DeployAPII
 	return deploy, nil
 }
 
+func (r *mutationResolver) SaveCustomLogic(ctx context.Context, input model.SaveCustomLogicInput) (bool, error) {
+	// TODO(gracew): postgres probably isn't the best place for this
+	db := pg.Connect(&pg.Options{User: "postgres"})
+	defer db.Close()
+
+	customLogic := &model.CustomLogic{
+		APIID:         input.APIID,
+		OperationType: input.OperationType,
+		BeforeSave:          input.BeforeSave,
+		AfterSave:   input.AfterSave,
+	}
+	err := db.Insert(customLogic)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 func (r *mutationResolver) AddTestToken(ctx context.Context, input model.TestTokenInput) (*model.TestToken, error) {
 	db := pg.Connect(&pg.Options{User: "postgres"})
 	defer db.Close()
@@ -129,6 +147,24 @@ func (r *queryResolver) Apis(ctx context.Context) ([]*model.API, error) {
 
 func (r *queryResolver) Auth(ctx context.Context, apiID string) (*model.Auth, error) {
 	return store.Auth(apiID)
+}
+
+func (r *queryResolver) CustomLogic(ctx context.Context, apiID string) ([]*model.CustomLogic, error) {
+	db := pg.Connect(&pg.Options{User: "postgres"})
+	defer db.Close()
+
+	var models []model.CustomLogic
+	err := db.Model(&models).WhereIn("apiid IN (?)", []string{apiID}).Select()
+	if err != nil {
+		return nil, err
+	}
+
+	var res []*model.CustomLogic
+	for i := 0; i < len(models); i++ {
+		res = append(res, &models[i])
+	}
+
+	return res, nil
 }
 
 func (r *queryResolver) TestTokens(ctx context.Context) (*model.TestTokenResponse, error) {

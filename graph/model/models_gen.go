@@ -58,6 +58,13 @@ type Constraint struct {
 	MaxLength *int     `json:"maxLength"`
 }
 
+type CustomLogic struct {
+	APIID         string        `json:"apiID"`
+	OperationType OperationType `json:"operationType"`
+	BeforeSave    *string       `json:"beforeSave"`
+	AfterSave     *string       `json:"afterSave"`
+}
+
 type DefineAPIInput struct {
 	RawDefinition string `json:"rawDefinition"`
 }
@@ -86,6 +93,13 @@ type OperationDefinition struct {
 	Type   OperationType     `json:"type"`
 	Sort   []*SortDefinition `json:"sort"`
 	Filter []string          `json:"filter"`
+}
+
+type SaveCustomLogicInput struct {
+	APIID         string        `json:"apiID"`
+	OperationType OperationType `json:"operationType"`
+	BeforeSave    *string       `json:"beforeSave"`
+	AfterSave     *string       `json:"afterSave"`
 }
 
 type SortDefinition struct {
