@@ -5,12 +5,14 @@ package graph
 import (
 	"context"
 	"encoding/json"
-	"errors"
+
+	"github.com/pkg/errors"
 
 	"github.com/go-pg/pg"
 	"github.com/google/uuid"
 	"github.com/gracew/widget/graph/generated"
 	"github.com/gracew/widget/graph/model"
+	"github.com/gracew/widget/launch"
 	"github.com/gracew/widget/store"
 )
 
@@ -90,16 +92,26 @@ func (r *mutationResolver) DeployAPI(ctx context.Context, input model.DeployAPII
 	db := pg.Connect(&pg.Options{User: "postgres"})
 	defer db.Close()
 
+	auth, err := store.Auth(input.APIID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "could not fetch auth for api %s", input.APIID)
+	}
+
+	err = launch.DeployAPI(*auth)
+	if err != nil {
+		return nil, errors.Wrapf(err, "could not launch container for api %s", input.APIID)
+	}
+
 	deploy := &model.Deploy{
 		ID:    uuid.New().String(),
 		APIID: input.APIID,
 		Env:   input.Env,
 	}
-	// TODO(gracew): actually do some k8s/dns stuff lol
-	err := db.Insert(deploy)
+	err = db.Insert(deploy)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "could not save deploy metadata for api %s", input.APIID)
 	}
+
 	return deploy, nil
 }
 

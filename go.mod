@@ -10,6 +10,7 @@ require (
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/onsi/ginkgo v1.10.1 // indirect
 	github.com/onsi/gomega v1.7.0 // indirect
+	github.com/pkg/errors v0.8.1
 	github.com/rs/cors v1.7.0
 	github.com/vektah/gqlparser/v2 v2.0.1
 	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413 // indirect
