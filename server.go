@@ -9,11 +9,9 @@ import (
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/go-pg/pg"
 	"github.com/go-pg/pg/orm"
-	"github.com/gorilla/mux"
 	"github.com/gracew/widget/graph"
 	"github.com/gracew/widget/graph/generated"
 	"github.com/gracew/widget/graph/model"
-	"github.com/gracew/widget/handlers"
 	"github.com/rs/cors"
 )
 
@@ -38,15 +36,6 @@ func main() {
 	http.Handle("/playground", playground.Handler("GraphQL playground", "/query"))
 	// TODO(gracew): remove cors later
 	http.Handle("/query", cors.Default().Handler(srv))
-
-	// individual API routes
-	r := mux.NewRouter()
-	r.HandleFunc("/apis/{apiID}/{env}", handlers.CreateHandler).Methods("POST", "OPTIONS")
-	r.HandleFunc("/apis/{apiID}/{env}/{id}", handlers.ReadHandler).Methods("GET", "OPTIONS")
-	r.HandleFunc("/apis/{apiID}/{env}", handlers.ListHandler).Methods("GET", "OPTIONS")
-	// TODO(gracew): remove cors later
-	r.Use(mux.CORSMethodMiddleware(r))
-	http.Handle("/", r)
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
