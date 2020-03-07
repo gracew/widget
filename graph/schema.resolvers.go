@@ -97,16 +97,17 @@ func (r *mutationResolver) DeployAPI(ctx context.Context, input model.DeployAPII
 		return nil, errors.Wrapf(err, "could not fetch auth for api %s", input.APIID)
 	}
 
-	err = launch.DeployAPI(*auth)
-	if err != nil {
-		return nil, errors.Wrapf(err, "could not launch container for api %s", input.APIID)
-	}
-
 	deploy := &model.Deploy{
 		ID:    uuid.New().String(),
 		APIID: input.APIID,
 		Env:   input.Env,
 	}
+
+	err = launch.DeployAPI(deploy.ID, *auth)
+	if err != nil {
+		return nil, errors.Wrapf(err, "could not launch container for api %s", input.APIID)
+	}
+
 	err = db.Insert(deploy)
 	if err != nil {
 		return nil, errors.Wrapf(err, "could not save deploy metadata for api %s", input.APIID)

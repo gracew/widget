@@ -14,7 +14,7 @@ import (
 // TODO(gracew): change this lol
 const TMP_DIR = "/Users/gracew/tmp"
 
-func DeployAPI(auth model.Auth) error {
+func DeployAPI(deployID string, auth model.Auth) error {
 	// serialize the auth object and write it to a temp file
 	bytes, err := json.Marshal(auth)
 	if err != nil {
@@ -38,6 +38,8 @@ func DeployAPI(auth model.Auth) error {
 		"8081:8080",
 		"-v",
 		authPath + ":/app/auth.json",
+		"-e",
+		"DEPLOY_ID=" + deployID,
 		"--name",
 		"widget-proxy",
 		"--network",
