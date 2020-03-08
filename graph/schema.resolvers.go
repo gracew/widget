@@ -97,15 +97,27 @@ func (r *mutationResolver) DeployAPI(ctx context.Context, input model.DeployAPII
 		return nil, errors.Wrapf(err, "could not fetch auth for api %s", input.APIID)
 	}
 
+	customLogic, err := store.CustomLogic(input.APIID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "could not fetch custom logic for api %s", input.APIID)
+	}
+
 	deploy := &model.Deploy{
 		ID:    uuid.New().String(),
 		APIID: input.APIID,
 		Env:   input.Env,
 	}
 
-	err = launch.DeployAPI(deploy.ID, *auth)
+	err = launch.DeployAPI(deploy.ID, *auth, customLogic)
 	if err != nil {
 		return nil, errors.Wrapf(err, "could not launch container for api %s", input.APIID)
+	}
+
+	if len(customLogic) > 0 {
+		err = launch.DeployCustomLogic(deploy.ID, customLogic)
+		if err != nil {
+			return nil, errors.Wrapf(err, "could not launch custom logic for api %s", input.APIID)
+		}
 	}
 
 	err = db.Insert(deploy)

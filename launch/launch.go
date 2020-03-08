@@ -3,7 +3,6 @@ package launch
 import (
 	"encoding/json"
 	"io/ioutil"
-	"os"
 	"os/exec"
 	"path/filepath"
 
@@ -14,18 +13,17 @@ import (
 // TODO(gracew): change this lol
 const TMP_DIR = "/Users/gracew/tmp"
 
-func DeployAPI(deployID string, auth model.Auth) error {
-	// serialize the auth object and write it to a temp file
-	bytes, err := json.Marshal(auth)
-	if err != nil {
-		return errors.Wrap(err, "could not marshal auth object")
-	}
-
-	authPath, err := writeTmpFile(bytes, "auth-")
+func DeployAPI(deployID string, auth model.Auth, customLogic []*model.CustomLogic) error {
+	// write auth and customLogic objects to temp files
+	authPath, err := writeTmpFile(auth, "auth-")
 	if err != nil {
 		return errors.Wrap(err, "failed to write auth to temp file")
 	}
-	defer os.Remove(authPath)
+
+	customLogicPath, err := writeTmpFile(customLogic, "customLogic-")
+	if err != nil {
+		return errors.Wrap(err, "failed to write customLogic to temp file")
+	}
 
 	// launch the docker container
 	// TODO(gracew): replace with k8s + a proper client lib
@@ -38,6 +36,8 @@ func DeployAPI(deployID string, auth model.Auth) error {
 		"8081:8080",
 		"-v",
 		authPath + ":/app/auth.json",
+		"-v",
+		customLogicPath + ":/app/customLogic.json",
 		"-e",
 		"DEPLOY_ID=" + deployID,
 		"--name",
@@ -46,15 +46,58 @@ func DeployAPI(deployID string, auth model.Auth) error {
 		"widget-proxy_default",
 		"widget-proxy",
 	)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		print(string(out))
+		return errors.Wrapf(err, "failed to launch docker container: %s", string(out))
+	}
+
+	// TODO(gracew): clean up the tmp files eventually...
+	return nil
+}
+
+func DeployCustomLogic(deployID string, customLogic []*model.CustomLogic) error {
+	customLogicPath, err := writeTmpFile(customLogic, "customLogic-")
+	if err != nil {
+		return errors.Wrap(err, "failed to write customLogic to temp file")
+	}
+
+	// launch the docker container
+	// TODO(gracew): replace with k8s + a proper client lib
+	cmd := exec.Command("docker",
+		"run",
+		"-d",
+		"-v",
+		customLogicPath + ":/app/customLogic.json",
+		"--name",
+		"custom-logic",
+		"--network",
+		"widget-proxy_default",
+		"node-runner",
+	)
+
 	err = cmd.Run()
 	if err != nil {
-		return errors.Wrap(err, "failed to execute docker container")
+		return errors.Wrap(err, "failed to launch custom logic container")
 	}
 
 	return nil
 }
 
-func writeTmpFile(input []byte, prefix string) (string, error) {
+func writeTmpFile(input interface{}, prefix string) (string, error) {
+	file, err := ioutil.TempFile("/tmp", prefix)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to create temp file")
+	}
+
+	err = json.NewEncoder(file).Encode(input)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to encode object to file")
+	}
+	return filepath.Abs(file.Name())
+}
+
+func writeTmpFileBytes(input []byte, prefix string) (string, error) {
 	file, err := ioutil.TempFile(TMP_DIR, prefix)
 	if err != nil {
 		return "", err
