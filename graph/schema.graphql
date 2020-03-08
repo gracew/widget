@@ -43,13 +43,13 @@ enum OperationType {
 type CustomLogic {
   apiID: ID!
   operationType: OperationType!
-  runtime: CustomLogicRuntime!
+  language: Language!
   beforeSave: String
   afterSave: String
 }
 
-enum CustomLogicRuntime {
-  NODE
+enum Language {
+  JAVASCRIPT
   PYTHON
 }
 
@@ -171,7 +171,7 @@ input AuthPolicyInput {
 input SaveCustomLogicInput {
   apiID: ID!
   operationType: OperationType!
-  runtime: CustomLogicRuntime!
+  language: Language!
   beforeSave: String
   afterSave: String
 }

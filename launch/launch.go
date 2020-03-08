@@ -62,8 +62,18 @@ func DeployCustomLogic(deployID string, customLogic []*model.CustomLogic) error 
 		return errors.Wrap(err, "failed to write customLogic to temp file")
 	}
 
-	// launch the docker container
-	// TODO(gracew): replace with k8s + a proper client lib
+
+	var image string
+	// for now we just pick the first language
+	switch customLogic[0].Language {
+		case model.LanguageJavascript:
+			image = "node-runner"
+		case model.LanguagePython:
+			image = "python-runner"
+		default:
+			return errors.New("unknown custom logic language: " + customLogic[0].Language.String())
+	}
+
 	cmd := exec.Command("docker",
 		"run",
 		"-d",
@@ -73,7 +83,7 @@ func DeployCustomLogic(deployID string, customLogic []*model.CustomLogic) error 
 		"custom-logic",
 		"--network",
 		"widget-proxy_default",
-		"node-runner",
+		image,
 	)
 
 	err = cmd.Run()

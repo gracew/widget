@@ -61,6 +61,7 @@ type Constraint struct {
 type CustomLogic struct {
 	APIID         string        `json:"apiID"`
 	OperationType OperationType `json:"operationType"`
+	Language      Language      `json:"language"`
 	BeforeSave    *string       `json:"beforeSave"`
 	AfterSave     *string       `json:"afterSave"`
 }
@@ -98,6 +99,7 @@ type OperationDefinition struct {
 type SaveCustomLogicInput struct {
 	APIID         string        `json:"apiID"`
 	OperationType OperationType `json:"operationType"`
+	Language      Language      `json:"language"`
 	BeforeSave    *string       `json:"beforeSave"`
 	AfterSave     *string       `json:"afterSave"`
 }
@@ -248,6 +250,47 @@ func (e *Environment) UnmarshalGQL(v interface{}) error {
 }
 
 func (e Environment) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type Language string
+
+const (
+	LanguageJavascript Language = "JAVASCRIPT"
+	LanguagePython     Language = "PYTHON"
+)
+
+var AllLanguage = []Language{
+	LanguageJavascript,
+	LanguagePython,
+}
+
+func (e Language) IsValid() bool {
+	switch e {
+	case LanguageJavascript, LanguagePython:
+		return true
+	}
+	return false
+}
+
+func (e Language) String() string {
+	return string(e)
+}
+
+func (e *Language) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = Language(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid Language", str)
+	}
+	return nil
+}
+
+func (e Language) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 

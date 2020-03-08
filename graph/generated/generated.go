@@ -84,6 +84,7 @@ type ComplexityRoot struct {
 		APIID         func(childComplexity int) int
 		AfterSave     func(childComplexity int) int
 		BeforeSave    func(childComplexity int) int
+		Language      func(childComplexity int) int
 		OperationType func(childComplexity int) int
 	}
 
@@ -345,6 +346,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.CustomLogic.BeforeSave(childComplexity), true
+
+	case "CustomLogic.language":
+		if e.complexity.CustomLogic.Language == nil {
+			break
+		}
+
+		return e.complexity.CustomLogic.Language(childComplexity), true
 
 	case "CustomLogic.operationType":
 		if e.complexity.CustomLogic.OperationType == nil {
@@ -703,8 +711,14 @@ enum OperationType {
 type CustomLogic {
   apiID: ID!
   operationType: OperationType!
+  language: Language!
   beforeSave: String
   afterSave: String
+}
+
+enum Language {
+  JAVASCRIPT
+  PYTHON
 }
 
 type SortDefinition {
@@ -825,6 +839,7 @@ input AuthPolicyInput {
 input SaveCustomLogicInput {
   apiID: ID!
   operationType: OperationType!
+  language: Language!
   beforeSave: String
   afterSave: String
 }
@@ -1814,6 +1829,40 @@ func (ec *executionContext) _CustomLogic_operationType(ctx context.Context, fiel
 	res := resTmp.(model.OperationType)
 	fc.Result = res
 	return ec.marshalNOperationType2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐOperationType(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _CustomLogic_language(ctx context.Context, field graphql.CollectedField, obj *model.CustomLogic) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "CustomLogic",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Language, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.Language)
+	fc.Result = res
+	return ec.marshalNLanguage2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐLanguage(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _CustomLogic_beforeSave(ctx context.Context, field graphql.CollectedField, obj *model.CustomLogic) (ret graphql.Marshaler) {
@@ -4122,6 +4171,12 @@ func (ec *executionContext) unmarshalInputSaveCustomLogicInput(ctx context.Conte
 			if err != nil {
 				return it, err
 			}
+		case "language":
+			var err error
+			it.Language, err = ec.unmarshalNLanguage2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐLanguage(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		case "beforeSave":
 			var err error
 			it.BeforeSave, err = ec.unmarshalOString2ᚖstring(ctx, v)
@@ -4407,6 +4462,11 @@ func (ec *executionContext) _CustomLogic(ctx context.Context, sel ast.SelectionS
 			}
 		case "operationType":
 			out.Values[i] = ec._CustomLogic_operationType(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "language":
+			out.Values[i] = ec._CustomLogic_language(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -5345,6 +5405,15 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNLanguage2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐLanguage(ctx context.Context, v interface{}) (model.Language, error) {
+	var res model.Language
+	return res, res.UnmarshalGQL(v)
+}
+
+func (ec *executionContext) marshalNLanguage2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐLanguage(ctx context.Context, sel ast.SelectionSet, v model.Language) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) marshalNOperationDefinition2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐOperationDefinition(ctx context.Context, sel ast.SelectionSet, v model.OperationDefinition) graphql.Marshaler {

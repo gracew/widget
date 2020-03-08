@@ -6,14 +6,13 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/pkg/errors"
-
 	"github.com/go-pg/pg"
 	"github.com/google/uuid"
 	"github.com/gracew/widget/graph/generated"
 	"github.com/gracew/widget/graph/model"
 	"github.com/gracew/widget/launch"
 	"github.com/gracew/widget/store"
+	"github.com/pkg/errors"
 )
 
 func (r *mutationResolver) DefineAPI(ctx context.Context, input model.DefineAPIInput) (*model.API, error) {
@@ -136,8 +135,9 @@ func (r *mutationResolver) SaveCustomLogic(ctx context.Context, input model.Save
 	customLogic := &model.CustomLogic{
 		APIID:         input.APIID,
 		OperationType: input.OperationType,
-		BeforeSave:          input.BeforeSave,
-		AfterSave:   input.AfterSave,
+		Language: 	   input.Language,
+		BeforeSave:    input.BeforeSave,
+		AfterSave:     input.AfterSave,
 	}
 	err := db.Insert(customLogic)
 	if err != nil {
