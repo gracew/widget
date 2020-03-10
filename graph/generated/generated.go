@@ -82,8 +82,8 @@ type ComplexityRoot struct {
 
 	CustomLogic struct {
 		APIID         func(childComplexity int) int
-		AfterSave     func(childComplexity int) int
-		BeforeSave    func(childComplexity int) int
+		After         func(childComplexity int) int
+		Before        func(childComplexity int) int
 		Language      func(childComplexity int) int
 		OperationType func(childComplexity int) int
 	}
@@ -333,19 +333,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.CustomLogic.APIID(childComplexity), true
 
-	case "CustomLogic.afterSave":
-		if e.complexity.CustomLogic.AfterSave == nil {
+	case "CustomLogic.after":
+		if e.complexity.CustomLogic.After == nil {
 			break
 		}
 
-		return e.complexity.CustomLogic.AfterSave(childComplexity), true
+		return e.complexity.CustomLogic.After(childComplexity), true
 
-	case "CustomLogic.beforeSave":
-		if e.complexity.CustomLogic.BeforeSave == nil {
+	case "CustomLogic.before":
+		if e.complexity.CustomLogic.Before == nil {
 			break
 		}
 
-		return e.complexity.CustomLogic.BeforeSave(childComplexity), true
+		return e.complexity.CustomLogic.Before(childComplexity), true
 
 	case "CustomLogic.language":
 		if e.complexity.CustomLogic.Language == nil {
@@ -710,10 +710,11 @@ enum OperationType {
 
 type CustomLogic {
   apiID: ID!
+  # TODO(gracew): limit this to a CustomLogicOperationType with options CREATE, UPDATE, DELETE
   operationType: OperationType!
   language: Language!
-  beforeSave: String
-  afterSave: String
+  before: String
+  after: String
 }
 
 enum Language {
@@ -840,8 +841,8 @@ input SaveCustomLogicInput {
   apiID: ID!
   operationType: OperationType!
   language: Language!
-  beforeSave: String
-  afterSave: String
+  before: String
+  after: String
 }
 
 input TestTokenInput {
@@ -1865,7 +1866,7 @@ func (ec *executionContext) _CustomLogic_language(ctx context.Context, field gra
 	return ec.marshalNLanguage2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐLanguage(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _CustomLogic_beforeSave(ctx context.Context, field graphql.CollectedField, obj *model.CustomLogic) (ret graphql.Marshaler) {
+func (ec *executionContext) _CustomLogic_before(ctx context.Context, field graphql.CollectedField, obj *model.CustomLogic) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1882,7 +1883,7 @@ func (ec *executionContext) _CustomLogic_beforeSave(ctx context.Context, field g
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.BeforeSave, nil
+		return obj.Before, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1896,7 +1897,7 @@ func (ec *executionContext) _CustomLogic_beforeSave(ctx context.Context, field g
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _CustomLogic_afterSave(ctx context.Context, field graphql.CollectedField, obj *model.CustomLogic) (ret graphql.Marshaler) {
+func (ec *executionContext) _CustomLogic_after(ctx context.Context, field graphql.CollectedField, obj *model.CustomLogic) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1913,7 +1914,7 @@ func (ec *executionContext) _CustomLogic_afterSave(ctx context.Context, field gr
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.AfterSave, nil
+		return obj.After, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4177,15 +4178,15 @@ func (ec *executionContext) unmarshalInputSaveCustomLogicInput(ctx context.Conte
 			if err != nil {
 				return it, err
 			}
-		case "beforeSave":
+		case "before":
 			var err error
-			it.BeforeSave, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			it.Before, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
-		case "afterSave":
+		case "after":
 			var err error
-			it.AfterSave, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			it.After, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4470,10 +4471,10 @@ func (ec *executionContext) _CustomLogic(ctx context.Context, sel ast.SelectionS
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "beforeSave":
-			out.Values[i] = ec._CustomLogic_beforeSave(ctx, field, obj)
-		case "afterSave":
-			out.Values[i] = ec._CustomLogic_afterSave(ctx, field, obj)
+		case "before":
+			out.Values[i] = ec._CustomLogic_before(ctx, field, obj)
+		case "after":
+			out.Values[i] = ec._CustomLogic_after(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

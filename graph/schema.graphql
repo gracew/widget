@@ -42,10 +42,11 @@ enum OperationType {
 
 type CustomLogic {
   apiID: ID!
+  # TODO(gracew): limit this to a CustomLogicOperationType with options CREATE, UPDATE, DELETE
   operationType: OperationType!
   language: Language!
-  beforeSave: String
-  afterSave: String
+  before: String
+  after: String
 }
 
 enum Language {
@@ -172,8 +173,8 @@ input SaveCustomLogicInput {
   apiID: ID!
   operationType: OperationType!
   language: Language!
-  beforeSave: String
-  afterSave: String
+  before: String
+  after: String
 }
 
 input TestTokenInput {

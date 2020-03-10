@@ -135,9 +135,9 @@ func (r *mutationResolver) SaveCustomLogic(ctx context.Context, input model.Save
 	customLogic := &model.CustomLogic{
 		APIID:         input.APIID,
 		OperationType: input.OperationType,
-		Language: 	   input.Language,
-		BeforeSave:    input.BeforeSave,
-		AfterSave:     input.AfterSave,
+		Language:      input.Language,
+		Before:        input.Before,
+		After:         input.After,
 	}
 	err := db.Insert(customLogic)
 	if err != nil {

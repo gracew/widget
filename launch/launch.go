@@ -57,28 +57,36 @@ func DeployAPI(deployID string, auth model.Auth, customLogic []*model.CustomLogi
 }
 
 func DeployCustomLogic(deployID string, customLogic []*model.CustomLogic) error {
-	customLogicPath, err := writeTmpFile(customLogic, "customLogic-")
+	customLogicDir, err := ioutil.TempDir(TMP_DIR, "customLogic-")
 	if err != nil {
-		return errors.Wrap(err, "failed to write customLogic to temp file")
+		return errors.Wrap(err, "failed to create customLogic temp dir")
 	}
 
-
-	var image string
 	// for now we just pick the first language
-	switch customLogic[0].Language {
-		case model.LanguageJavascript:
-			image = "node-runner"
-		case model.LanguagePython:
-			image = "python-runner"
-		default:
-			return errors.New("unknown custom logic language: " + customLogic[0].Language.String())
+	ext, err := getExtension(customLogic[0].Language)
+	if err != nil {
+		return errors.Wrap(err, "could not determine file extension")
+	}
+
+	for _, logic := range customLogic {
+		if logic.Before != nil {
+			writeFileInDir(customLogicDir, "beforeCreate" + ext, *logic.Before)
+		}
+		if logic.After != nil {
+			writeFileInDir(customLogicDir, "afterCreate" + ext, *logic.After)
+		}
+	}
+
+	image, err := getImage(customLogic[0].Language)
+	if err != nil {
+		return errors.Wrap(err, "could not determine image")
 	}
 
 	cmd := exec.Command("docker",
 		"run",
 		"-d",
 		"-v",
-		customLogicPath + ":/app/customLogic.json",
+		customLogicDir + ":/app/customLogic",
 		"--name",
 		"custom-logic",
 		"--network",
@@ -94,8 +102,32 @@ func DeployCustomLogic(deployID string, customLogic []*model.CustomLogic) error 
 	return nil
 }
 
+func getExtension(language model.Language) (string, error) {
+	// for now we just pick the first language
+	switch language {
+		case model.LanguageJavascript:
+			return ".js", nil
+		case model.LanguagePython:
+			return ".py", nil
+		default:
+			return "", errors.New("unknown custom logic language: " + language.String())
+	}
+}
+
+func getImage(language model.Language) (string, error) {
+	// for now we just pick the first language
+	switch language {
+		case model.LanguageJavascript:
+			return "node-runner", nil
+		case model.LanguagePython:
+			return "python-runner", nil
+		default:
+			return "", errors.New("unknown custom logic language: " + language.String())
+	}
+}
+
 func writeTmpFile(input interface{}, prefix string) (string, error) {
-	file, err := ioutil.TempFile("/tmp", prefix)
+	file, err := ioutil.TempFile(TMP_DIR, prefix)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to create temp file")
 	}
@@ -107,14 +139,11 @@ func writeTmpFile(input interface{}, prefix string) (string, error) {
 	return filepath.Abs(file.Name())
 }
 
-func writeTmpFileBytes(input []byte, prefix string) (string, error) {
-	file, err := ioutil.TempFile(TMP_DIR, prefix)
+func writeFileInDir(dir string, name string, input string) error {
+	path := filepath.Join(dir, name)
+	err := ioutil.WriteFile(path, []byte(input), 0644)
 	if err != nil {
-		return "", err
+		return err
 	}
-
-	if _, err = file.Write(input); err != nil {
-        return "", err
-	}
-	return filepath.Abs(file.Name())
+	return nil
 }

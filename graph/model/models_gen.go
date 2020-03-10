@@ -62,8 +62,8 @@ type CustomLogic struct {
 	APIID         string        `json:"apiID"`
 	OperationType OperationType `json:"operationType"`
 	Language      Language      `json:"language"`
-	BeforeSave    *string       `json:"beforeSave"`
-	AfterSave     *string       `json:"afterSave"`
+	Before        *string       `json:"before"`
+	After         *string       `json:"after"`
 }
 
 type DefineAPIInput struct {
@@ -100,8 +100,8 @@ type SaveCustomLogicInput struct {
 	APIID         string        `json:"apiID"`
 	OperationType OperationType `json:"operationType"`
 	Language      Language      `json:"language"`
-	BeforeSave    *string       `json:"beforeSave"`
-	AfterSave     *string       `json:"afterSave"`
+	Before        *string       `json:"before"`
+	After         *string       `json:"after"`
 }
 
 type SortDefinition struct {
