@@ -139,7 +139,8 @@ func (r *mutationResolver) SaveCustomLogic(ctx context.Context, input model.Save
 		Before:        input.Before,
 		After:         input.After,
 	}
-	err := db.Insert(customLogic)
+
+	_, err := db.Model(customLogic).OnConflict("(apiid, operation_type) DO UPDATE").Insert()
 	if err != nil {
 		return false, err
 	}
