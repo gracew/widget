@@ -91,6 +91,12 @@ func (r *mutationResolver) DeployAPI(ctx context.Context, input model.DeployAPII
 	db := pg.Connect(&pg.Options{User: "postgres"})
 	defer db.Close()
 
+	// TODO(gracew): parallelize these db calls lol
+	api, err := store.API(input.APIID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "could not fetch api %s", input.APIID)
+	}
+
 	auth, err := store.Auth(input.APIID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "could not fetch auth for api %s", input.APIID)
@@ -107,7 +113,7 @@ func (r *mutationResolver) DeployAPI(ctx context.Context, input model.DeployAPII
 		Env:   input.Env,
 	}
 
-	err = launch.DeployAPI(deploy.ID, *auth, customLogic)
+	err = launch.DeployAPI(api.Name, deploy.ID, *auth, customLogic)
 	if err != nil {
 		return nil, errors.Wrapf(err, "could not launch container for api %s", input.APIID)
 	}

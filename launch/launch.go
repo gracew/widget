@@ -13,7 +13,7 @@ import (
 // TODO(gracew): change this lol
 const TMP_DIR = "/Users/gracew/tmp"
 
-func DeployAPI(deployID string, auth model.Auth, customLogic []*model.CustomLogic) error {
+func DeployAPI(apiName string, deployID string, auth model.Auth, customLogic []*model.CustomLogic) error {
 	// write auth and customLogic objects to temp files
 	authPath, err := writeTmpFile(auth, "auth-")
 	if err != nil {
@@ -38,6 +38,8 @@ func DeployAPI(deployID string, auth model.Auth, customLogic []*model.CustomLogi
 		authPath + ":/app/auth.json",
 		"-v",
 		customLogicPath + ":/app/customLogic.json",
+		"-e",
+		"API_NAME=" + apiName,
 		"-e",
 		"DEPLOY_ID=" + deployID,
 		"--name",
