@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-pg/pg"
 	"github.com/google/uuid"
+	"github.com/gracew/widget/grafana"
 	"github.com/gracew/widget/graph/generated"
 	"github.com/gracew/widget/graph/model"
 	"github.com/gracew/widget/launch"
@@ -123,6 +124,11 @@ func (r *mutationResolver) DeployAPI(ctx context.Context, input model.DeployAPII
 		if err != nil {
 			return nil, errors.Wrapf(err, "could not launch custom logic for api %s", input.APIID)
 		}
+	}
+
+	err = grafana.ImportDashboard(api.Name, *deploy)
+	if err != nil {
+		return nil, errors.Wrapf(err, "could not create grafana dashboard for api %s", input.APIID)
 	}
 
 	err = db.Insert(deploy)
