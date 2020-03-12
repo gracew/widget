@@ -16,6 +16,10 @@ import (
 	"github.com/pkg/errors"
 )
 
+func (r *aPIResolver) Deploys(ctx context.Context, obj *model.API) ([]*model.Deploy, error) {
+	return store.Deploys(obj.ID)
+}
+
 func (r *mutationResolver) DefineAPI(ctx context.Context, input model.DefineAPIInput) (*model.API, error) {
 	var definition model.APIDefinition
 	json.Unmarshal([]byte(input.RawDefinition), &definition)
@@ -126,7 +130,7 @@ func (r *mutationResolver) DeployAPI(ctx context.Context, input model.DeployAPII
 		}
 	}
 
-	err = grafana.ImportDashboard(api.Name, *deploy)
+	err = grafana.ImportDashboard(api.Name, *deploy, customLogic)
 	if err != nil {
 		return nil, errors.Wrapf(err, "could not create grafana dashboard for api %s", input.APIID)
 	}
@@ -205,8 +209,10 @@ func (r *queryResolver) TestTokens(ctx context.Context) (*model.TestTokenRespons
 	return &model.TestTokenResponse{TestTokens: res}, nil
 }
 
+func (r *Resolver) API() generated.APIResolver           { return &aPIResolver{r} }
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 func (r *Resolver) Query() generated.QueryResolver       { return &queryResolver{r} }
 
+type aPIResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }

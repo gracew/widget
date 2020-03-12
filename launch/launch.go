@@ -50,7 +50,6 @@ func DeployAPI(apiName string, deployID string, auth model.Auth, customLogic []*
 	)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		print(string(out))
 		return errors.Wrapf(err, "failed to launch docker container: %s", string(out))
 	}
 

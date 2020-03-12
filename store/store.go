@@ -68,3 +68,21 @@ func CustomLogic(apiID string) ([]*model.CustomLogic, error) {
 
 	return res, nil
 }
+
+func Deploys(apiID string) ([]*model.Deploy, error) {
+	db := pg.Connect(&pg.Options{User: "postgres"})
+	defer db.Close()
+
+	var models []model.Deploy
+	err := db.Model(&models).WhereIn("apiid IN (?)", []string{apiID}).Select()
+	if err != nil {
+		return nil, err
+	}
+
+	var res []*model.Deploy
+	for i := 0; i < len(models); i++ {
+		res = append(res, &models[i])
+	}
+
+	return res, nil
+}

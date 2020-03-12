@@ -8,13 +8,6 @@ import (
 	"strconv"
 )
 
-type API struct {
-	ID         string         `json:"id"`
-	Name       string         `json:"name"`
-	Deploys    []*Deploy      `json:"deploys"`
-	Definition *APIDefinition `json:"definition"`
-}
-
 type APIDefinition struct {
 	Name       string                 `json:"name"`
 	Fields     []*FieldDefinition     `json:"fields"`
