@@ -119,6 +119,28 @@ enum AuthPolicyType {
   CUSTOM
 }
 
+enum DeployStep {
+  GENERATE_CODE
+  BUILD_IMAGE
+  LAUNCH_CONTAINER
+  LAUNCH_CUSTOM_LOGIC_CONTAINER
+}
+
+enum DeployStatus {
+  IN_PROGRESS
+  COMPLETE
+  PENDING
+}
+
+type DeployStepStatus {
+  step: DeployStep!
+  status: DeployStatus!
+}
+
+type DeployStatus {
+  steps: [DeployStepStatus!]!
+}
+
 type TestTokenResponse {
   testTokens: [TestToken!]!
 }
@@ -132,6 +154,7 @@ type Query {
   # TODO(gracew): page this
   api(id: ID!): API
   apis: [API!]!
+  deployStatus(deployID: ID!): DeployStatus!
 
   auth(apiID: ID!): Auth
   customLogic(apiID: ID!): [CustomLogic!]!

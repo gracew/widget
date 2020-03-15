@@ -118,7 +118,7 @@ func (r *mutationResolver) DeployAPI(ctx context.Context, input model.DeployAPII
 		Env:   input.Env,
 	}
 
-	err = launch.DeployAPI(api.Name, deploy.ID, *auth, customLogic)
+	err = launch.DeployAPI(*api, *auth, customLogic)
 	if err != nil {
 		return nil, errors.Wrapf(err, "could not launch container for api %s", input.APIID)
 	}

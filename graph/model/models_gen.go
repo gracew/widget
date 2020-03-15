@@ -51,14 +51,6 @@ type Constraint struct {
 	MaxLength *int     `json:"maxLength"`
 }
 
-type CustomLogic struct {
-	APIID         string        `json:"apiID"`
-	OperationType OperationType `json:"operationType"`
-	Language      Language      `json:"language"`
-	Before        *string       `json:"before"`
-	After         *string       `json:"after"`
-}
-
 type DefineAPIInput struct {
 	RawDefinition string `json:"rawDefinition"`
 }
