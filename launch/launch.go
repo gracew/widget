@@ -2,10 +2,15 @@ package launch
 
 import (
 	"encoding/json"
+	"fmt"
+	"io"
 	"io/ioutil"
+	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 
+	"github.com/dave/jennifer/jen"
 	"github.com/gracew/widget/graph/model"
 	"github.com/pkg/errors"
 )
@@ -13,7 +18,84 @@ import (
 // TODO(gracew): change this lol
 const TMP_DIR = "/Users/gracew/tmp"
 
-func DeployAPI(apiName string, deployID string, auth model.Auth, customLogic []*model.CustomLogic) error {
+func DeployAPI(api model.API, auth model.Auth, customLogic []*model.CustomLogic) error {
+	generated, err := generateCode(api)
+	if err != nil {
+		return errors.Wrapf(err, "failed to generate model code for API %s", api.ID)
+	}
+
+	err = buildImage(api.ID, generated)
+	if err != nil {
+		return errors.Wrapf(err, "failed to build docker image for API %s", api.ID)
+	}
+
+	err = launchContainer(api, auth, customLogic)
+	if err != nil {
+		return errors.Wrapf(err, "failed to launch docker container for API %s", api.ID)
+	}
+	return err
+}
+
+func generateCode(api model.API) (string, error) {
+	f := jen.NewFile("generated")
+	fields := []jen.Code{
+		jen.Id("ID").String().Tag(map[string]string{"json": "id", "sql": "type:uuid,default:gen_random_uuid()"}),
+		jen.Id("CreatedBy").String().Tag(map[string]string{"json": "createdBy"}),
+	}
+	for _, field := range api.Definition.Fields {
+		jenField := jen.Id(field.Name)
+		switch field.Type {
+			case model.TypeBoolean:
+				jenField.Bool()
+			case model.TypeFloat:
+				jenField.Float64()
+			case model.TypeInt:
+				jenField.Int32()
+			case model.TypeString:
+				jenField.String()
+			default:
+				return "", errors.New("unknown field type: " + field.Type.String())
+		}
+		jenField.Tag(map[string]string{"json": field.Name})
+		fields = append(fields, jenField)
+	}
+	f.Type().Id("Object").Struct(fields...)
+	return fmt.Sprintf("%#v", f), nil
+}
+
+func buildImage(apiID string, generated string) error {
+	tmpDir, err := ioutil.TempDir(TMP_DIR, "build-image-")
+	if err != nil {
+		return errors.Wrap(err, "failed to create temp dir")
+	}
+
+	err = ioutil.WriteFile(path.Join(tmpDir, "model.go"), []byte(generated), 0644)
+	if err != nil {
+		return errors.Wrap(err, "failed to write generated code to temp dir")
+	}
+
+	err = copyFile("./launch/Dockerfile", path.Join(tmpDir, "Dockerfile"))
+	if err != nil {
+		return errors.Wrap(err, "failed to copy dockerfile")
+	}
+
+	cmd := exec.Command(
+		"docker",
+		"build",
+		tmpDir,
+		"-t",
+		apiID,
+	)
+
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return errors.Wrapf(err, "failed to build docker image for api %s: %s", apiID, string(out))
+	}
+
+	return nil
+}
+
+func launchContainer(api model.API, auth model.Auth, customLogic []*model.CustomLogic) error {
 	// write auth and customLogic objects to temp files
 	authPath, err := writeTmpFile(auth, "auth-")
 	if err != nil {
@@ -39,14 +121,12 @@ func DeployAPI(apiName string, deployID string, auth model.Auth, customLogic []*
 		"-v",
 		customLogicPath + ":/app/customLogic.json",
 		"-e",
-		"API_NAME=" + apiName,
-		"-e",
-		"DEPLOY_ID=" + deployID,
+		"API_NAME=" + api.Name,
 		"--name",
 		"widget-proxy",
 		"--network",
 		"widget-proxy_default",
-		"widget-proxy",
+		api.ID, // image name
 	)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -148,3 +228,23 @@ func writeFileInDir(dir string, name string, input string) error {
 	}
 	return nil
 }
+
+func copyFile(srcPath string, destPath string) error {
+	src, err := os.Open(srcPath)
+	if err != nil {
+		return errors.Wrap(err, "failed to open source file")
+	}
+	defer src.Close()
+
+	dest, err := os.OpenFile(destPath, os.O_RDWR|os.O_CREATE, 0644)
+	if err != nil {
+		return errors.Wrap(err, "failed to open dest file")
+	}
+	defer dest.Close()
+
+	_, err = io.Copy(dest, src)
+	if err != nil {
+		return errors.Wrap(err, "failed to copy file")
+	}
+	return nil
+  }

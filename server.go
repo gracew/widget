@@ -12,7 +12,6 @@ import (
 	"github.com/gracew/widget/graph"
 	"github.com/gracew/widget/graph/generated"
 	"github.com/gracew/widget/graph/model"
-	"github.com/gracew/widget/pgmodel"
 	"github.com/rs/cors"
 )
 
@@ -48,7 +47,7 @@ func createSchema(db *pg.DB) error {
 		(*model.Deploy)(nil),
 		(*model.Auth)(nil),
 		(*model.TestToken)(nil),
-		(*pgmodel.CustomLogic)(nil),
+		(*model.CustomLogic)(nil),
 	} {
 		err := db.CreateTable(model, &orm.CreateTableOptions{
 			IfNotExists: true,
