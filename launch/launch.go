@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"strings"
 
 	"github.com/dave/jennifer/jen"
 	"github.com/gracew/widget/graph/model"
@@ -43,7 +44,7 @@ func generateCode(api model.API) (string, error) {
 		jen.Id("CreatedBy").String().Tag(map[string]string{"json": "createdBy"}),
 	}
 	for _, field := range api.Definition.Fields {
-		jenField := jen.Id(field.Name)
+		jenField := jen.Id(strings.Title(field.Name))
 		switch field.Type {
 			case model.TypeBoolean:
 				jenField.Bool()

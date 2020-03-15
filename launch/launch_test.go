@@ -16,6 +16,7 @@ func TestGenerateCode(t *testing.T) {
 			&model.FieldDefinition{Name: "bar", Type: model.TypeFloat},
 			&model.FieldDefinition{Name: "baz", Type: model.TypeInt},
 			&model.FieldDefinition{Name: "qux", Type: model.TypeString},
+			&model.FieldDefinition{Name: "camelCase", Type: model.TypeString},
 		},
 	}}
 
