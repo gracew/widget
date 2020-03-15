@@ -129,15 +129,16 @@ enum DeployStep {
 enum DeployStatus {
   IN_PROGRESS
   COMPLETE
-  PENDING
+  FAILED
 }
 
 type DeployStepStatus {
+  deployID: ID!
   step: DeployStep!
   status: DeployStatus!
 }
 
-type DeployStatus {
+type DeployStatusResponse {
   steps: [DeployStepStatus!]!
 }
 
@@ -154,7 +155,7 @@ type Query {
   # TODO(gracew): page this
   api(id: ID!): API
   apis: [API!]!
-  deployStatus(deployID: ID!): DeployStatus!
+  deployStatus(deployID: ID!): DeployStatusResponse!
 
   auth(apiID: ID!): Auth
   customLogic(apiID: ID!): [CustomLogic!]!
@@ -175,6 +176,8 @@ input UpdateAPIInput {
 
 input DeployAPIInput {
   apiID: ID!
+  # TODO(gracew): this should be provisioned by the server, but this is easier for now...
+  deployID: ID!
   env: Environment!
 }
 

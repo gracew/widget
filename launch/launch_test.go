@@ -20,7 +20,8 @@ func TestGenerateCode(t *testing.T) {
 		},
 	}}
 
-	generated, err := generateCode(api)
+	l := Launcher{API: api}
+	generated, err := l.generateCode()
 	assert.NoError(t, err)
 
 	f, err := os.Open("test/generated.go")

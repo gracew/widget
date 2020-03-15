@@ -8,9 +8,15 @@ type API struct {
 }
 
 type CustomLogic struct {
-	APIID         string        `sql:",pk" json:"apiID"`
-	OperationType OperationType `sql:",pk" json:"operationType"`
+	APIID         string        `json:"apiID" sql:",pk"`
+	OperationType OperationType `json:"operationType" sql:",pk"`
 	Language      Language      `json:"language"`
 	Before        *string       `json:"before"`
 	After         *string       `json:"after"`
+}
+
+type DeployStepStatus struct {
+	DeployID string       `json:"deployID" sql:",pk"`
+	Step     DeployStep   `json:"step" sql:",pk"`
+	Status   DeployStatus `json:"status"`
 }

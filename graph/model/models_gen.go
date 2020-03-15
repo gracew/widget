@@ -62,8 +62,13 @@ type Deploy struct {
 }
 
 type DeployAPIInput struct {
-	APIID string      `json:"apiID"`
-	Env   Environment `json:"env"`
+	APIID    string      `json:"apiID"`
+	DeployID string      `json:"deployID"`
+	Env      Environment `json:"env"`
+}
+
+type DeployStatusResponse struct {
+	Steps []*DeployStepStatus `json:"steps"`
 }
 
 type FieldDefinition struct {
@@ -192,6 +197,94 @@ func (e *AuthenticationType) UnmarshalGQL(v interface{}) error {
 }
 
 func (e AuthenticationType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type DeployStatus string
+
+const (
+	DeployStatusInProgress DeployStatus = "IN_PROGRESS"
+	DeployStatusComplete   DeployStatus = "COMPLETE"
+	DeployStatusFailed     DeployStatus = "FAILED"
+)
+
+var AllDeployStatus = []DeployStatus{
+	DeployStatusInProgress,
+	DeployStatusComplete,
+	DeployStatusFailed,
+}
+
+func (e DeployStatus) IsValid() bool {
+	switch e {
+	case DeployStatusInProgress, DeployStatusComplete, DeployStatusFailed:
+		return true
+	}
+	return false
+}
+
+func (e DeployStatus) String() string {
+	return string(e)
+}
+
+func (e *DeployStatus) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = DeployStatus(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid DeployStatus", str)
+	}
+	return nil
+}
+
+func (e DeployStatus) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type DeployStep string
+
+const (
+	DeployStepGenerateCode               DeployStep = "GENERATE_CODE"
+	DeployStepBuildImage                 DeployStep = "BUILD_IMAGE"
+	DeployStepLaunchContainer            DeployStep = "LAUNCH_CONTAINER"
+	DeployStepLaunchCustomLogicContainer DeployStep = "LAUNCH_CUSTOM_LOGIC_CONTAINER"
+)
+
+var AllDeployStep = []DeployStep{
+	DeployStepGenerateCode,
+	DeployStepBuildImage,
+	DeployStepLaunchContainer,
+	DeployStepLaunchCustomLogicContainer,
+}
+
+func (e DeployStep) IsValid() bool {
+	switch e {
+	case DeployStepGenerateCode, DeployStepBuildImage, DeployStepLaunchContainer, DeployStepLaunchCustomLogicContainer:
+		return true
+	}
+	return false
+}
+
+func (e DeployStep) String() string {
+	return string(e)
+}
+
+func (e *DeployStep) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = DeployStep(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid DeployStep", str)
+	}
+	return nil
+}
+
+func (e DeployStep) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
