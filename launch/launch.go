@@ -13,37 +13,56 @@ import (
 
 	"github.com/dave/jennifer/jen"
 	"github.com/gracew/widget/graph/model"
+	"github.com/gracew/widget/store"
 	"github.com/pkg/errors"
 )
 
 // TODO(gracew): change this lol
 const TMP_DIR = "/Users/gracew/tmp"
 
-func DeployAPI(api model.API, auth model.Auth, customLogic []*model.CustomLogic) error {
-	generated, err := generateCode(api)
-	if err != nil {
-		return errors.Wrapf(err, "failed to generate model code for API %s", api.ID)
-	}
-
-	err = buildImage(api.ID, generated)
-	if err != nil {
-		return errors.Wrapf(err, "failed to build docker image for API %s", api.ID)
-	}
-
-	err = launchContainer(api, auth, customLogic)
-	if err != nil {
-		return errors.Wrapf(err, "failed to launch docker container for API %s", api.ID)
-	}
-	return err
+type Launcher struct {
+	Store store.Store
+	DeployID string
+	API model.API
+	Auth model.Auth
+	CustomLogic []*model.CustomLogic
 }
 
-func generateCode(api model.API) (string, error) {
+func (l Launcher) DeployAPI() error {
+	l.Store.SaveDeployStepStatus(l.DeployID, model.DeployStepGenerateCode, model.DeployStatusInProgress)
+	generated, err := l.generateCode()
+	if err != nil {
+		l.Store.SaveDeployStepStatus(l.DeployID, model.DeployStepGenerateCode, model.DeployStatusFailed)
+		return errors.Wrapf(err, "failed to generate model code for API %s", l.API.ID)
+	}
+	l.Store.SaveDeployStepStatus(l.DeployID, model.DeployStepGenerateCode, model.DeployStatusComplete)
+
+	l.Store.SaveDeployStepStatus(l.DeployID, model.DeployStepBuildImage, model.DeployStatusInProgress)
+	err = l.buildImage(generated)
+	if err != nil {
+		l.Store.SaveDeployStepStatus(l.DeployID, model.DeployStepBuildImage, model.DeployStatusFailed)
+		return errors.Wrapf(err, "failed to build docker image for API %s", l.API.ID)
+	}
+	l.Store.SaveDeployStepStatus(l.DeployID, model.DeployStepBuildImage, model.DeployStatusComplete)
+
+	l.Store.SaveDeployStepStatus(l.DeployID, model.DeployStepLaunchContainer, model.DeployStatusInProgress)
+	err = l.launchContainer()
+	if err != nil {
+		l.Store.SaveDeployStepStatus(l.DeployID, model.DeployStepLaunchContainer, model.DeployStatusFailed)
+		return errors.Wrapf(err, "failed to launch docker container for API %s", l.API.ID)
+	}
+	l.Store.SaveDeployStepStatus(l.DeployID, model.DeployStepLaunchContainer, model.DeployStatusComplete)
+
+	return nil
+}
+
+func (l Launcher) generateCode() (string, error) {
 	f := jen.NewFile("generated")
 	fields := []jen.Code{
 		jen.Id("ID").String().Tag(map[string]string{"json": "id", "sql": "type:uuid,default:gen_random_uuid()"}),
 		jen.Id("CreatedBy").String().Tag(map[string]string{"json": "createdBy"}),
 	}
-	for _, field := range api.Definition.Fields {
+	for _, field := range l.API.Definition.Fields {
 		jenField := jen.Id(strings.Title(field.Name))
 		switch field.Type {
 			case model.TypeBoolean:
@@ -61,10 +80,11 @@ func generateCode(api model.API) (string, error) {
 		fields = append(fields, jenField)
 	}
 	f.Type().Id("Object").Struct(fields...)
+
 	return fmt.Sprintf("%#v", f), nil
 }
 
-func buildImage(apiID string, generated string) error {
+func (l Launcher) buildImage(generated string) error {
 	tmpDir, err := ioutil.TempDir(TMP_DIR, "build-image-")
 	if err != nil {
 		return errors.Wrap(err, "failed to create temp dir")
@@ -85,25 +105,25 @@ func buildImage(apiID string, generated string) error {
 		"build",
 		tmpDir,
 		"-t",
-		apiID,
+		l.API.ID,
 	)
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return errors.Wrapf(err, "failed to build docker image for api %s: %s", apiID, string(out))
+		return errors.Wrapf(err, "failed to build docker image for api %s: %s", l.API.ID, string(out))
 	}
 
 	return nil
 }
 
-func launchContainer(api model.API, auth model.Auth, customLogic []*model.CustomLogic) error {
+func (l Launcher) launchContainer() error {
 	// write auth and customLogic objects to temp files
-	authPath, err := writeTmpFile(auth, "auth-")
+	authPath, err := writeTmpFile(l.Auth, "auth-")
 	if err != nil {
 		return errors.Wrap(err, "failed to write auth to temp file")
 	}
 
-	customLogicPath, err := writeTmpFile(customLogic, "customLogic-")
+	customLogicPath, err := writeTmpFile(l.CustomLogic, "customLogic-")
 	if err != nil {
 		return errors.Wrap(err, "failed to write customLogic to temp file")
 	}
@@ -122,12 +142,12 @@ func launchContainer(api model.API, auth model.Auth, customLogic []*model.Custom
 		"-v",
 		customLogicPath + ":/app/customLogic.json",
 		"-e",
-		"API_NAME=" + api.Name,
+		"API_NAME=" + l.API.Name,
 		"--name",
 		"widget-proxy",
 		"--network",
 		"widget-proxy_default",
-		api.ID, // image name
+		l.API.ID, // image name
 	)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -138,19 +158,30 @@ func launchContainer(api model.API, auth model.Auth, customLogic []*model.Custom
 	return nil
 }
 
-func DeployCustomLogic(deployID string, customLogic []*model.CustomLogic) error {
+func (l Launcher) DeployCustomLogic() error {
+	l.Store.SaveDeployStepStatus(l.DeployID, model.DeployStepLaunchCustomLogicContainer, model.DeployStatusInProgress)
+	err := l.deployCustomLogic()
+	if err != nil {
+		l.Store.SaveDeployStepStatus(l.DeployID, model.DeployStepLaunchCustomLogicContainer, model.DeployStatusFailed)
+		return err
+	}
+	l.Store.SaveDeployStepStatus(l.DeployID, model.DeployStepLaunchCustomLogicContainer, model.DeployStatusComplete)
+	return nil
+}
+
+func (l Launcher) deployCustomLogic() error {
 	customLogicDir, err := ioutil.TempDir(TMP_DIR, "customLogic-")
 	if err != nil {
 		return errors.Wrap(err, "failed to create customLogic temp dir")
 	}
 
 	// for now we just pick the first language
-	ext, err := getExtension(customLogic[0].Language)
+	ext, err := getExtension(l.CustomLogic[0].Language)
 	if err != nil {
 		return errors.Wrap(err, "could not determine file extension")
 	}
 
-	for _, logic := range customLogic {
+	for _, logic := range l.CustomLogic {
 		if logic.Before != nil {
 			writeFileInDir(customLogicDir, "beforeCreate" + ext, *logic.Before)
 		}
@@ -159,7 +190,7 @@ func DeployCustomLogic(deployID string, customLogic []*model.CustomLogic) error 
 		}
 	}
 
-	image, err := getImage(customLogic[0].Language)
+	image, err := getImage(l.CustomLogic[0].Language)
 	if err != nil {
 		return errors.Wrap(err, "could not determine image")
 	}

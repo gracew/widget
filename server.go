@@ -12,6 +12,7 @@ import (
 	"github.com/gracew/widget/graph"
 	"github.com/gracew/widget/graph/generated"
 	"github.com/gracew/widget/graph/model"
+	"github.com/gracew/widget/store"
 	"github.com/rs/cors"
 )
 
@@ -31,7 +32,7 @@ func main() {
 		port = defaultPort
 	}
 
-	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{}}))
+	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{Store: store.Store{DB: db}}}))
 
 	http.Handle("/playground", playground.Handler("GraphQL playground", "/query"))
 	// TODO(gracew): remove cors later
@@ -45,6 +46,7 @@ func createSchema(db *pg.DB) error {
 	for _, model := range []interface{}{
 		(*model.API)(nil),
 		(*model.Deploy)(nil),
+		(*model.DeployStepStatus)(nil),
 		(*model.Auth)(nil),
 		(*model.TestToken)(nil),
 		(*model.CustomLogic)(nil),

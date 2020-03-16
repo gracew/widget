@@ -12,12 +12,11 @@ import (
 	"github.com/gracew/widget/graph/generated"
 	"github.com/gracew/widget/graph/model"
 	"github.com/gracew/widget/launch"
-	"github.com/gracew/widget/store"
 	"github.com/pkg/errors"
 )
 
 func (r *aPIResolver) Deploys(ctx context.Context, obj *model.API) ([]*model.Deploy, error) {
-	return store.Deploys(obj.ID)
+	return r.Store.Deploys(obj.ID)
 }
 
 func (r *mutationResolver) DefineAPI(ctx context.Context, input model.DefineAPIInput) (*model.API, error) {
@@ -97,34 +96,46 @@ func (r *mutationResolver) DeployAPI(ctx context.Context, input model.DeployAPII
 	defer db.Close()
 
 	// TODO(gracew): parallelize these db calls lol
-	api, err := store.API(input.APIID)
+	api, err := r.Store.API(input.APIID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "could not fetch api %s", input.APIID)
 	}
 
-	auth, err := store.Auth(input.APIID)
+	auth, err := r.Store.Auth(input.APIID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "could not fetch auth for api %s", input.APIID)
 	}
 
-	customLogic, err := store.CustomLogic(input.APIID)
+	customLogic, err := r.Store.CustomLogic(input.APIID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "could not fetch custom logic for api %s", input.APIID)
 	}
 
 	deploy := &model.Deploy{
-		ID:    uuid.New().String(),
+		ID:    input.DeployID,
 		APIID: input.APIID,
 		Env:   input.Env,
 	}
+	err = db.Insert(deploy)
+	if err != nil {
+		return nil, errors.Wrapf(err, "could not save deploy metadata for api %s", input.APIID)
+	}
 
-	err = launch.DeployAPI(*api, *auth, customLogic)
+	launcher := launch.Launcher{
+		Store:       r.Store,
+		DeployID:    deploy.ID,
+		API:         *api,
+		Auth:        *auth,
+		CustomLogic: customLogic,
+	}
+
+	err = launcher.DeployAPI()
 	if err != nil {
 		return nil, errors.Wrapf(err, "could not launch container for api %s", input.APIID)
 	}
 
 	if len(customLogic) > 0 {
-		err = launch.DeployCustomLogic(deploy.ID, customLogic)
+		err = launcher.DeployCustomLogic()
 		if err != nil {
 			return nil, errors.Wrapf(err, "could not launch custom logic for api %s", input.APIID)
 		}
@@ -133,11 +144,6 @@ func (r *mutationResolver) DeployAPI(ctx context.Context, input model.DeployAPII
 	err = grafana.ImportDashboard(api.Name, *deploy, customLogic)
 	if err != nil {
 		return nil, errors.Wrapf(err, "could not create grafana dashboard for api %s", input.APIID)
-	}
-
-	err = db.Insert(deploy)
-	if err != nil {
-		return nil, errors.Wrapf(err, "could not save deploy metadata for api %s", input.APIID)
 	}
 
 	return deploy, nil
@@ -180,19 +186,27 @@ func (r *mutationResolver) AddTestToken(ctx context.Context, input model.TestTok
 }
 
 func (r *queryResolver) API(ctx context.Context, id string) (*model.API, error) {
-	return store.API(id)
+	return r.Store.API(id)
 }
 
 func (r *queryResolver) Apis(ctx context.Context) ([]*model.API, error) {
-	return store.Apis()
+	return r.Store.Apis()
+}
+
+func (r *queryResolver) DeployStatus(ctx context.Context, deployID string) (*model.DeployStatusResponse, error) {
+	steps, err := r.Store.DeployStatus(deployID)
+	if err != nil {
+		return nil, err
+	}
+	return &model.DeployStatusResponse{Steps: steps}, nil
 }
 
 func (r *queryResolver) Auth(ctx context.Context, apiID string) (*model.Auth, error) {
-	return store.Auth(apiID)
+	return r.Store.Auth(apiID)
 }
 
 func (r *queryResolver) CustomLogic(ctx context.Context, apiID string) ([]*model.CustomLogic, error) {
-	return store.CustomLogic(apiID)
+	return r.Store.CustomLogic(apiID)
 }
 
 func (r *queryResolver) TestTokens(ctx context.Context) (*model.TestTokenResponse, error) {

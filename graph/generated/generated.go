@@ -95,6 +95,16 @@ type ComplexityRoot struct {
 		ID    func(childComplexity int) int
 	}
 
+	DeployStatusResponse struct {
+		Steps func(childComplexity int) int
+	}
+
+	DeployStepStatus struct {
+		DeployID func(childComplexity int) int
+		Status   func(childComplexity int) int
+		Step     func(childComplexity int) int
+	}
+
 	FieldDefinition struct {
 		Constraints func(childComplexity int) int
 		CustomType  func(childComplexity int) int
@@ -120,11 +130,12 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		API         func(childComplexity int, id string) int
-		Apis        func(childComplexity int) int
-		Auth        func(childComplexity int, apiID string) int
-		CustomLogic func(childComplexity int, apiID string) int
-		TestTokens  func(childComplexity int) int
+		API          func(childComplexity int, id string) int
+		Apis         func(childComplexity int) int
+		Auth         func(childComplexity int, apiID string) int
+		CustomLogic  func(childComplexity int, apiID string) int
+		DeployStatus func(childComplexity int, deployID string) int
+		TestTokens   func(childComplexity int) int
 	}
 
 	SortDefinition struct {
@@ -156,6 +167,7 @@ type MutationResolver interface {
 type QueryResolver interface {
 	API(ctx context.Context, id string) (*model.API, error)
 	Apis(ctx context.Context) ([]*model.API, error)
+	DeployStatus(ctx context.Context, deployID string) (*model.DeployStatusResponse, error)
 	Auth(ctx context.Context, apiID string) (*model.Auth, error)
 	CustomLogic(ctx context.Context, apiID string) ([]*model.CustomLogic, error)
 	TestTokens(ctx context.Context) (*model.TestTokenResponse, error)
@@ -386,6 +398,34 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Deploy.ID(childComplexity), true
 
+	case "DeployStatusResponse.steps":
+		if e.complexity.DeployStatusResponse.Steps == nil {
+			break
+		}
+
+		return e.complexity.DeployStatusResponse.Steps(childComplexity), true
+
+	case "DeployStepStatus.deployID":
+		if e.complexity.DeployStepStatus.DeployID == nil {
+			break
+		}
+
+		return e.complexity.DeployStepStatus.DeployID(childComplexity), true
+
+	case "DeployStepStatus.status":
+		if e.complexity.DeployStepStatus.Status == nil {
+			break
+		}
+
+		return e.complexity.DeployStepStatus.Status(childComplexity), true
+
+	case "DeployStepStatus.step":
+		if e.complexity.DeployStepStatus.Step == nil {
+			break
+		}
+
+		return e.complexity.DeployStepStatus.Step(childComplexity), true
+
 	case "FieldDefinition.constraints":
 		if e.complexity.FieldDefinition.Constraints == nil {
 			break
@@ -563,6 +603,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.CustomLogic(childComplexity, args["apiID"].(string)), true
+
+	case "Query.deployStatus":
+		if e.complexity.Query.DeployStatus == nil {
+			break
+		}
+
+		args, err := ec.field_Query_deployStatus_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.DeployStatus(childComplexity, args["deployID"].(string)), true
 
 	case "Query.testTokens":
 		if e.complexity.Query.TestTokens == nil {
@@ -791,6 +843,29 @@ enum AuthPolicyType {
   CUSTOM
 }
 
+enum DeployStep {
+  GENERATE_CODE
+  BUILD_IMAGE
+  LAUNCH_CONTAINER
+  LAUNCH_CUSTOM_LOGIC_CONTAINER
+}
+
+enum DeployStatus {
+  IN_PROGRESS
+  COMPLETE
+  FAILED
+}
+
+type DeployStepStatus {
+  deployID: ID!
+  step: DeployStep!
+  status: DeployStatus!
+}
+
+type DeployStatusResponse {
+  steps: [DeployStepStatus!]!
+}
+
 type TestTokenResponse {
   testTokens: [TestToken!]!
 }
@@ -804,6 +879,7 @@ type Query {
   # TODO(gracew): page this
   api(id: ID!): API
   apis: [API!]!
+  deployStatus(deployID: ID!): DeployStatusResponse!
 
   auth(apiID: ID!): Auth
   customLogic(apiID: ID!): [CustomLogic!]!
@@ -824,6 +900,8 @@ input UpdateAPIInput {
 
 input DeployAPIInput {
   apiID: ID!
+  # TODO(gracew): this should be provisioned by the server, but this is easier for now...
+  deployID: ID!
   env: Environment!
 }
 
@@ -1008,6 +1086,20 @@ func (ec *executionContext) field_Query_customLogic_args(ctx context.Context, ra
 		}
 	}
 	args["apiID"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_deployStatus_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["deployID"]; ok {
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["deployID"] = arg0
 	return args, nil
 }
 
@@ -2034,6 +2126,142 @@ func (ec *executionContext) _Deploy_env(ctx context.Context, field graphql.Colle
 	return ec.marshalNEnvironment2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐEnvironment(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _DeployStatusResponse_steps(ctx context.Context, field graphql.CollectedField, obj *model.DeployStatusResponse) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "DeployStatusResponse",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Steps, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.DeployStepStatus)
+	fc.Result = res
+	return ec.marshalNDeployStepStatus2ᚕᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐDeployStepStatusᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DeployStepStatus_deployID(ctx context.Context, field graphql.CollectedField, obj *model.DeployStepStatus) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "DeployStepStatus",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DeployID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DeployStepStatus_step(ctx context.Context, field graphql.CollectedField, obj *model.DeployStepStatus) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "DeployStepStatus",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Step, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.DeployStep)
+	fc.Result = res
+	return ec.marshalNDeployStep2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐDeployStep(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DeployStepStatus_status(ctx context.Context, field graphql.CollectedField, obj *model.DeployStepStatus) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "DeployStepStatus",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Status, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.DeployStatus)
+	fc.Result = res
+	return ec.marshalNDeployStatus2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐDeployStatus(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _FieldDefinition_name(ctx context.Context, field graphql.CollectedField, obj *model.FieldDefinition) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2641,6 +2869,47 @@ func (ec *executionContext) _Query_apis(ctx context.Context, field graphql.Colle
 	res := resTmp.([]*model.API)
 	fc.Result = res
 	return ec.marshalNAPI2ᚕᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐAPIᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_deployStatus(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Query",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_deployStatus_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().DeployStatus(rctx, args["deployID"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.DeployStatusResponse)
+	fc.Result = res
+	return ec.marshalNDeployStatusResponse2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐDeployStatusResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_auth(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -4146,6 +4415,12 @@ func (ec *executionContext) unmarshalInputDeployAPIInput(ctx context.Context, ob
 			if err != nil {
 				return it, err
 			}
+		case "deployID":
+			var err error
+			it.DeployID, err = ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		case "env":
 			var err error
 			it.Env, err = ec.unmarshalNEnvironment2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐEnvironment(ctx, v)
@@ -4536,6 +4811,70 @@ func (ec *executionContext) _Deploy(ctx context.Context, sel ast.SelectionSet, o
 	return out
 }
 
+var deployStatusResponseImplementors = []string{"DeployStatusResponse"}
+
+func (ec *executionContext) _DeployStatusResponse(ctx context.Context, sel ast.SelectionSet, obj *model.DeployStatusResponse) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, deployStatusResponseImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("DeployStatusResponse")
+		case "steps":
+			out.Values[i] = ec._DeployStatusResponse_steps(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var deployStepStatusImplementors = []string{"DeployStepStatus"}
+
+func (ec *executionContext) _DeployStepStatus(ctx context.Context, sel ast.SelectionSet, obj *model.DeployStepStatus) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, deployStepStatusImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("DeployStepStatus")
+		case "deployID":
+			out.Values[i] = ec._DeployStepStatus_deployID(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "step":
+			out.Values[i] = ec._DeployStepStatus_step(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "status":
+			out.Values[i] = ec._DeployStepStatus_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var fieldDefinitionImplementors = []string{"FieldDefinition"}
 
 func (ec *executionContext) _FieldDefinition(ctx context.Context, sel ast.SelectionSet, obj *model.FieldDefinition) graphql.Marshaler {
@@ -4701,6 +5040,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_apis(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "deployStatus":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_deployStatus(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -5345,6 +5698,89 @@ func (ec *executionContext) marshalNDeploy2ᚖgithubᚗcomᚋgracewᚋwidgetᚋg
 
 func (ec *executionContext) unmarshalNDeployAPIInput2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐDeployAPIInput(ctx context.Context, v interface{}) (model.DeployAPIInput, error) {
 	return ec.unmarshalInputDeployAPIInput(ctx, v)
+}
+
+func (ec *executionContext) unmarshalNDeployStatus2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐDeployStatus(ctx context.Context, v interface{}) (model.DeployStatus, error) {
+	var res model.DeployStatus
+	return res, res.UnmarshalGQL(v)
+}
+
+func (ec *executionContext) marshalNDeployStatus2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐDeployStatus(ctx context.Context, sel ast.SelectionSet, v model.DeployStatus) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) marshalNDeployStatusResponse2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐDeployStatusResponse(ctx context.Context, sel ast.SelectionSet, v model.DeployStatusResponse) graphql.Marshaler {
+	return ec._DeployStatusResponse(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNDeployStatusResponse2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐDeployStatusResponse(ctx context.Context, sel ast.SelectionSet, v *model.DeployStatusResponse) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._DeployStatusResponse(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNDeployStep2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐDeployStep(ctx context.Context, v interface{}) (model.DeployStep, error) {
+	var res model.DeployStep
+	return res, res.UnmarshalGQL(v)
+}
+
+func (ec *executionContext) marshalNDeployStep2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐDeployStep(ctx context.Context, sel ast.SelectionSet, v model.DeployStep) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) marshalNDeployStepStatus2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐDeployStepStatus(ctx context.Context, sel ast.SelectionSet, v model.DeployStepStatus) graphql.Marshaler {
+	return ec._DeployStepStatus(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNDeployStepStatus2ᚕᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐDeployStepStatusᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.DeployStepStatus) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNDeployStepStatus2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐDeployStepStatus(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) marshalNDeployStepStatus2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐDeployStepStatus(ctx context.Context, sel ast.SelectionSet, v *model.DeployStepStatus) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._DeployStepStatus(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNEnvironment2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐEnvironment(ctx context.Context, v interface{}) (model.Environment, error) {
