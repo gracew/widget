@@ -150,6 +150,14 @@ func (r *mutationResolver) DeployAPI(ctx context.Context, input model.DeployAPII
 	return deploy, nil
 }
 
+func (r *mutationResolver) DeleteAPI(ctx context.Context, id string) (bool, error) {
+	err := r.Store.DeleteApi(id)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 func (r *mutationResolver) SaveCustomLogic(ctx context.Context, input model.SaveCustomLogicInput) (bool, error) {
 	// TODO(gracew): postgres probably isn't the best place for this
 	db := pg.Connect(&pg.Options{User: "postgres"})

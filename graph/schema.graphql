@@ -214,6 +214,7 @@ type Mutation {
   updateAPI(input: UpdateAPIInput!): API!
   authAPI(input: AuthAPIInput!): Boolean!
   deployAPI(input: DeployAPIInput!): Deploy!
+  deleteAPI(id: ID!): Boolean!
   saveCustomLogic(input: SaveCustomLogicInput!): Boolean!
 
   addTestToken(input: TestTokenInput!): TestToken!

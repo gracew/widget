@@ -38,6 +38,15 @@ func (s Store) Apis() ([]*model.API, error) {
 	return res, nil
 }
 
+func (s Store) DeleteApi(id string) error {
+	api := &model.API{ID: id}
+	err := s.DB.Delete(api)
+	if err != nil {
+		return errors.Wrapf(err, "failed to delete API %s", id)
+	}
+	return nil
+}
+
 // Auth fetches auth for the specified API.
 func (s Store) Auth(apiID string) (*model.Auth, error) {
 	var auths []model.Auth
