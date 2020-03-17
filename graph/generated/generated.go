@@ -902,7 +902,7 @@ input DefineAPIInput {
 }
 
 input UpdateAPIInput {
-  apiID: ID!
+  id: ID!
   # TODO(gracew): in the future may want to send an already parsed representation?
   rawDefinition: String!
 }
@@ -4542,9 +4542,9 @@ func (ec *executionContext) unmarshalInputUpdateAPIInput(ctx context.Context, ob
 
 	for k, v := range asMap {
 		switch k {
-		case "apiID":
+		case "id":
 			var err error
-			it.APIID, err = ec.unmarshalNID2string(ctx, v)
+			it.ID, err = ec.unmarshalNID2string(ctx, v)
 			if err != nil {
 				return it, err
 			}

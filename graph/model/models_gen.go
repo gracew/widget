@@ -115,7 +115,7 @@ type TestTokenResponse struct {
 }
 
 type UpdateAPIInput struct {
-	APIID         string `json:"apiID"`
+	ID            string `json:"id"`
 	RawDefinition string `json:"rawDefinition"`
 }
 

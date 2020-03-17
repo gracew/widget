@@ -46,7 +46,7 @@ func (r *mutationResolver) UpdateAPI(ctx context.Context, input model.UpdateAPII
 	db := pg.Connect(&pg.Options{User: "postgres"})
 	defer db.Close()
 
-	currAPI := &model.API{ID: input.APIID}
+	currAPI := &model.API{ID: input.ID}
 	err := db.Select(currAPI)
 	if err != nil {
 		return nil, err
@@ -56,7 +56,8 @@ func (r *mutationResolver) UpdateAPI(ctx context.Context, input model.UpdateAPII
 		return nil, errors.New("cannot change API name")
 	}
 	updatedAPI := &model.API{
-		ID:         input.APIID,
+		ID:         input.ID,
+		Name:       currAPI.Name,
 		Definition: &definition,
 	}
 	err = db.Update(updatedAPI)

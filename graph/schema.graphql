@@ -170,7 +170,7 @@ input DefineAPIInput {
 }
 
 input UpdateAPIInput {
-  apiID: ID!
+  id: ID!
   # TODO(gracew): in the future may want to send an already parsed representation?
   rawDefinition: String!
 }
