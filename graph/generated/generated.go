@@ -106,12 +106,13 @@ type ComplexityRoot struct {
 	}
 
 	FieldDefinition struct {
-		Constraints func(childComplexity int) int
-		CustomType  func(childComplexity int) int
-		List        func(childComplexity int) int
-		Name        func(childComplexity int) int
-		Optional    func(childComplexity int) int
-		Type        func(childComplexity int) int
+		Constraints          func(childComplexity int) int
+		CustomLogicPopulated func(childComplexity int) int
+		CustomType           func(childComplexity int) int
+		List                 func(childComplexity int) int
+		Name                 func(childComplexity int) int
+		Optional             func(childComplexity int) int
+		Type                 func(childComplexity int) int
 	}
 
 	Mutation struct {
@@ -432,6 +433,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.FieldDefinition.Constraints(childComplexity), true
+
+	case "FieldDefinition.customLogicPopulated":
+		if e.complexity.FieldDefinition.CustomLogicPopulated == nil {
+			break
+		}
+
+		return e.complexity.FieldDefinition.CustomLogicPopulated(childComplexity), true
 
 	case "FieldDefinition.customType":
 		if e.complexity.FieldDefinition.CustomType == nil {
@@ -794,7 +802,8 @@ type FieldDefinition {
   customType: String
   optional: Boolean
   list: Boolean
-  constraints: Constraint!
+  constraints: Constraint
+  customLogicPopulated: Boolean
 }
 
 enum Type {
@@ -2447,14 +2456,42 @@ func (ec *executionContext) _FieldDefinition_constraints(ctx context.Context, fi
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
 	res := resTmp.(*model.Constraint)
 	fc.Result = res
-	return ec.marshalNConstraint2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐConstraint(ctx, field.Selections, res)
+	return ec.marshalOConstraint2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐConstraint(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _FieldDefinition_customLogicPopulated(ctx context.Context, field graphql.CollectedField, obj *model.FieldDefinition) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "FieldDefinition",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CustomLogicPopulated, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*bool)
+	fc.Result = res
+	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_defineAPI(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -4904,9 +4941,8 @@ func (ec *executionContext) _FieldDefinition(ctx context.Context, sel ast.Select
 			out.Values[i] = ec._FieldDefinition_list(ctx, field, obj)
 		case "constraints":
 			out.Values[i] = ec._FieldDefinition_constraints(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+		case "customLogicPopulated":
+			out.Values[i] = ec._FieldDefinition_customLogicPopulated(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -5574,20 +5610,6 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 		}
 	}
 	return res
-}
-
-func (ec *executionContext) marshalNConstraint2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐConstraint(ctx context.Context, sel ast.SelectionSet, v model.Constraint) graphql.Marshaler {
-	return ec._Constraint(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNConstraint2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐConstraint(ctx context.Context, sel ast.SelectionSet, v *model.Constraint) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._Constraint(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNCustomLogic2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐCustomLogic(ctx context.Context, sel ast.SelectionSet, v model.CustomLogic) graphql.Marshaler {
@@ -6318,6 +6340,17 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 		return graphql.Null
 	}
 	return ec.marshalOBoolean2bool(ctx, sel, *v)
+}
+
+func (ec *executionContext) marshalOConstraint2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐConstraint(ctx context.Context, sel ast.SelectionSet, v model.Constraint) graphql.Marshaler {
+	return ec._Constraint(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalOConstraint2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐConstraint(ctx context.Context, sel ast.SelectionSet, v *model.Constraint) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Constraint(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOFloat2float64(ctx context.Context, v interface{}) (float64, error) {

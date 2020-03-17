@@ -70,7 +70,8 @@ type FieldDefinition {
   customType: String
   optional: Boolean
   list: Boolean
-  constraints: Constraint!
+  constraints: Constraint
+  customLogicPopulated: Boolean
 }
 
 enum Type {

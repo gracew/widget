@@ -72,12 +72,13 @@ type DeployStatusResponse struct {
 }
 
 type FieldDefinition struct {
-	Name        string      `json:"name"`
-	Type        Type        `json:"type"`
-	CustomType  *string     `json:"customType"`
-	Optional    *bool       `json:"optional"`
-	List        *bool       `json:"list"`
-	Constraints *Constraint `json:"constraints"`
+	Name                 string      `json:"name"`
+	Type                 Type        `json:"type"`
+	CustomType           *string     `json:"customType"`
+	Optional             *bool       `json:"optional"`
+	List                 *bool       `json:"list"`
+	Constraints          *Constraint `json:"constraints"`
+	CustomLogicPopulated *bool       `json:"customLogicPopulated"`
 }
 
 type OperationDefinition struct {
