@@ -1,0 +1,86 @@
+type API {
+  id: ID!
+  name: String!
+  definition: APIDefinition!
+}
+
+type APIDefinition {
+  name: String!
+  fields: [FieldDefinition!]!
+  operations: OperationDefinition!
+}
+
+type OperationDefinition {
+  create: Boolean
+  read: Boolean
+  list: ListDefinition
+}
+
+type ListDefinition {
+  sort: [SortDefinition!]!
+  filter: [String!]!
+}
+
+type SortDefinition {
+  field: String!
+  order: SortOrder!
+}
+
+enum SortOrder {
+  ASC
+  DESC
+}
+
+type FieldDefinition {
+  name: String!
+  type: Type!
+  customType: String
+  optional: Boolean
+  list: Boolean
+  constraints: Constraint
+  customLogicPopulated: Boolean
+}
+
+enum Type {
+  FLOAT
+  INT
+  BOOLEAN
+  STRING
+}
+
+type Constraint {
+  # type Int
+  minInt: Int
+  maxInt: Int
+  # type Float
+  minFloat: Float
+  maxFloat: Float
+  # type String
+  regex: String
+  # type String, List
+  minLength: Int
+  maxLength: Int
+}
+
+type Query {
+  # TODO(gracew): page this
+  api(id: ID!): API
+  apis: [API!]!
+}
+
+input DefineAPIInput {
+  # TODO(gracew): in the future may want to send an already parsed representation?
+  rawDefinition: String!
+}
+
+input UpdateAPIInput {
+  id: ID!
+  # TODO(gracew): in the future may want to send an already parsed representation?
+  rawDefinition: String!
+}
+
+type Mutation {
+  defineAPI(input: DefineAPIInput!): API!
+  updateAPI(input: UpdateAPIInput!): API!
+  deleteAPI(id: ID!): Boolean!
+}

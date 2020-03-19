@@ -1,0 +1,21 @@
+type TestTokenResponse {
+  testTokens: [TestToken!]!
+}
+
+type TestToken {
+  label: String!
+  token: String!
+}
+
+extend type Query {
+  testTokens: TestTokenResponse!
+}
+
+input TestTokenInput {
+  label: String!
+  token: String!
+}
+
+extend type Mutation {
+  addTestToken(input: TestTokenInput!): TestToken!
+}

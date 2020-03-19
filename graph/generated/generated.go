@@ -166,18 +166,18 @@ type APIResolver interface {
 type MutationResolver interface {
 	DefineAPI(ctx context.Context, input model.DefineAPIInput) (*model.API, error)
 	UpdateAPI(ctx context.Context, input model.UpdateAPIInput) (*model.API, error)
-	AuthAPI(ctx context.Context, input model.AuthAPIInput) (bool, error)
-	DeployAPI(ctx context.Context, input model.DeployAPIInput) (*model.Deploy, error)
 	DeleteAPI(ctx context.Context, id string) (bool, error)
+	AuthAPI(ctx context.Context, input model.AuthAPIInput) (bool, error)
 	SaveCustomLogic(ctx context.Context, input model.SaveCustomLogicInput) (bool, error)
+	DeployAPI(ctx context.Context, input model.DeployAPIInput) (*model.Deploy, error)
 	AddTestToken(ctx context.Context, input model.TestTokenInput) (*model.TestToken, error)
 }
 type QueryResolver interface {
 	API(ctx context.Context, id string) (*model.API, error)
 	Apis(ctx context.Context) ([]*model.API, error)
-	DeployStatus(ctx context.Context, deployID string) (*model.DeployStatusResponse, error)
 	Auth(ctx context.Context, apiID string) (*model.Auth, error)
 	CustomLogic(ctx context.Context, apiID string) ([]*model.CustomLogic, error)
+	DeployStatus(ctx context.Context, deployID string) (*model.DeployStatusResponse, error)
 	TestTokens(ctx context.Context) (*model.TestTokenResponse, error)
 }
 
@@ -763,27 +763,10 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	&ast.Source{Name: "graph/schema.graphql", Input: `# GraphQL schema example
-#
-# https://gqlgen.com/getting-started/
-
-type API {
+	&ast.Source{Name: "graph/schema/api.graphql", Input: `type API {
   id: ID!
   name: String!
-  deploys: [Deploy!]!
   definition: APIDefinition!
-}
-
-enum Environment {
-  SANDBOX
-  STAGING
-  PRODUCTION
-}
-
-type Deploy {
-  id: ID!
-  apiID: ID!
-  env: Environment!
 }
 
 type APIDefinition {
@@ -801,27 +784,6 @@ type OperationDefinition {
 type ListDefinition {
   sort: [SortDefinition!]!
   filter: [String!]!
-}
-
-enum OperationType {
-  CREATE
-  UPDATE
-  READ
-  LIST
-}
-
-type CustomLogic {
-  apiID: ID!
-  # TODO(gracew): limit this to a CustomLogicOperationType with options CREATE, UPDATE, DELETE
-  operationType: OperationType!
-  language: Language!
-  before: String
-  after: String
-}
-
-enum Language {
-  JAVASCRIPT
-  PYTHON
 }
 
 type SortDefinition {
@@ -865,7 +827,30 @@ type Constraint {
   maxLength: Int
 }
 
-type Auth {
+type Query {
+  # TODO(gracew): page this
+  api(id: ID!): API
+  apis: [API!]!
+}
+
+input DefineAPIInput {
+  # TODO(gracew): in the future may want to send an already parsed representation?
+  rawDefinition: String!
+}
+
+input UpdateAPIInput {
+  id: ID!
+  # TODO(gracew): in the future may want to send an already parsed representation?
+  rawDefinition: String!
+}
+
+type Mutation {
+  defineAPI(input: DefineAPIInput!): API!
+  updateAPI(input: UpdateAPIInput!): API!
+  deleteAPI(id: ID!): Boolean!
+}
+`, BuiltIn: false},
+	&ast.Source{Name: "graph/schema/auth.graphql", Input: `type Auth {
   id: ID!
   apiID: ID!
   authenticationType: AuthenticationType!
@@ -888,6 +873,81 @@ enum AuthPolicyType {
   CREATED_BY
   ATTRIBUTE_MATCH
   CUSTOM
+}
+
+extend type Query {
+  auth(apiID: ID!): Auth
+}
+
+input AuthAPIInput {
+  apiID: ID!
+  authenticationType: AuthenticationType!
+  readPolicy: AuthPolicyInput!
+  writePolicy: AuthPolicyInput!
+}
+
+input AuthPolicyInput {
+  type: AuthPolicyType!
+  # type ATTRIBUTE_MATCH
+  userAttribute: String
+  objectAttribute: String
+}
+
+extend type Mutation {
+  authAPI(input: AuthAPIInput!): Boolean!
+}
+`, BuiltIn: false},
+	&ast.Source{Name: "graph/schema/customLogic.graphql", Input: `type CustomLogic {
+  apiID: ID!
+  # TODO(gracew): limit this to a CustomLogicOperationType with options CREATE, UPDATE, DELETE
+  operationType: OperationType!
+  language: Language!
+  before: String
+  after: String
+}
+
+enum OperationType {
+  CREATE
+  UPDATE
+  READ
+  LIST
+}
+
+enum Language {
+  JAVASCRIPT
+  PYTHON
+}
+
+extend type Query {
+  customLogic(apiID: ID!): [CustomLogic!]!
+}
+
+input SaveCustomLogicInput {
+  apiID: ID!
+  operationType: OperationType!
+  language: Language!
+  before: String
+  after: String
+}
+
+extend type Mutation {
+  saveCustomLogic(input: SaveCustomLogicInput!): Boolean!
+}
+`, BuiltIn: false},
+	&ast.Source{Name: "graph/schema/deploy.graphql", Input: `enum Environment {
+  SANDBOX
+  STAGING
+  PRODUCTION
+}
+
+type Deploy {
+  id: ID!
+  apiID: ID!
+  env: Environment!
+}
+
+extend type API {
+  deploys: [Deploy!]!
 }
 
 enum DeployStep {
@@ -913,36 +973,8 @@ type DeployStatusResponse {
   steps: [DeployStepStatus!]!
 }
 
-type TestTokenResponse {
-  testTokens: [TestToken!]!
-}
-
-type TestToken {
-  label: String!
-  token: String!
-}
-
-type Query {
-  # TODO(gracew): page this
-  api(id: ID!): API
-  apis: [API!]!
+extend type Query {
   deployStatus(deployID: ID!): DeployStatusResponse!
-
-  auth(apiID: ID!): Auth
-  customLogic(apiID: ID!): [CustomLogic!]!
-
-  testTokens: TestTokenResponse!
-}
-
-input DefineAPIInput {
-  # TODO(gracew): in the future may want to send an already parsed representation?
-  rawDefinition: String!
-}
-
-input UpdateAPIInput {
-  id: ID!
-  # TODO(gracew): in the future may want to send an already parsed representation?
-  rawDefinition: String!
 }
 
 input DeployAPIInput {
@@ -952,26 +984,21 @@ input DeployAPIInput {
   env: Environment!
 }
 
-input AuthAPIInput {
-  apiID: ID!
-  authenticationType: AuthenticationType!
-  readPolicy: AuthPolicyInput!
-  writePolicy: AuthPolicyInput!
+extend type Mutation {
+  deployAPI(input: DeployAPIInput!): Deploy!
+}
+`, BuiltIn: false},
+	&ast.Source{Name: "graph/schema/token.graphql", Input: `type TestTokenResponse {
+  testTokens: [TestToken!]!
 }
 
-input AuthPolicyInput {
-  type: AuthPolicyType!
-  # type ATTRIBUTE_MATCH
-  userAttribute: String
-  objectAttribute: String
+type TestToken {
+  label: String!
+  token: String!
 }
 
-input SaveCustomLogicInput {
-  apiID: ID!
-  operationType: OperationType!
-  language: Language!
-  before: String
-  after: String
+extend type Query {
+  testTokens: TestTokenResponse!
 }
 
 input TestTokenInput {
@@ -979,14 +1006,7 @@ input TestTokenInput {
   token: String!
 }
 
-type Mutation {
-  defineAPI(input: DefineAPIInput!): API!
-  updateAPI(input: UpdateAPIInput!): API!
-  authAPI(input: AuthAPIInput!): Boolean!
-  deployAPI(input: DeployAPIInput!): Deploy!
-  deleteAPI(id: ID!): Boolean!
-  saveCustomLogic(input: SaveCustomLogicInput!): Boolean!
-
+extend type Mutation {
   addTestToken(input: TestTokenInput!): TestToken!
 }
 `, BuiltIn: false},
@@ -1269,40 +1289,6 @@ func (ec *executionContext) _API_name(ctx context.Context, field graphql.Collect
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _API_deploys(ctx context.Context, field graphql.CollectedField, obj *model.API) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "API",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.API().Deploys(rctx, obj)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]*model.Deploy)
-	fc.Result = res
-	return ec.marshalNDeploy2ᚕᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐDeployᚄ(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _API_definition(ctx context.Context, field graphql.CollectedField, obj *model.API) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1335,6 +1321,40 @@ func (ec *executionContext) _API_definition(ctx context.Context, field graphql.C
 	res := resTmp.(*model.APIDefinition)
 	fc.Result = res
 	return ec.marshalNAPIDefinition2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐAPIDefinition(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _API_deploys(ctx context.Context, field graphql.CollectedField, obj *model.API) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "API",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.API().Deploys(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Deploy)
+	fc.Result = res
+	return ec.marshalNDeploy2ᚕᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐDeployᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _APIDefinition_name(ctx context.Context, field graphql.CollectedField, obj *model.APIDefinition) (ret graphql.Marshaler) {
@@ -2697,88 +2717,6 @@ func (ec *executionContext) _Mutation_updateAPI(ctx context.Context, field graph
 	return ec.marshalNAPI2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐAPI(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Mutation_authAPI(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Mutation",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_authAPI_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AuthAPI(rctx, args["input"].(model.AuthAPIInput))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Mutation_deployAPI(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Mutation",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_deployAPI_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().DeployAPI(rctx, args["input"].(model.DeployAPIInput))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.Deploy)
-	fc.Result = res
-	return ec.marshalNDeploy2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐDeploy(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _Mutation_deleteAPI(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2804,6 +2742,47 @@ func (ec *executionContext) _Mutation_deleteAPI(ctx context.Context, field graph
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Mutation().DeleteAPI(rctx, args["id"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_authAPI(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_authAPI_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().AuthAPI(rctx, args["input"].(model.AuthAPIInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2859,6 +2838,47 @@ func (ec *executionContext) _Mutation_saveCustomLogic(ctx context.Context, field
 	res := resTmp.(bool)
 	fc.Result = res
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_deployAPI(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_deployAPI_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeployAPI(rctx, args["input"].(model.DeployAPIInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Deploy)
+	fc.Result = res
+	return ec.marshalNDeploy2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐDeploy(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_addTestToken(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3067,47 +3087,6 @@ func (ec *executionContext) _Query_apis(ctx context.Context, field graphql.Colle
 	return ec.marshalNAPI2ᚕᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐAPIᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Query_deployStatus(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Query",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Query_deployStatus_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().DeployStatus(rctx, args["deployID"].(string))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.DeployStatusResponse)
-	fc.Result = res
-	return ec.marshalNDeployStatusResponse2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐDeployStatusResponse(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _Query_auth(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -3185,6 +3164,47 @@ func (ec *executionContext) _Query_customLogic(ctx context.Context, field graphq
 	res := resTmp.([]*model.CustomLogic)
 	fc.Result = res
 	return ec.marshalNCustomLogic2ᚕᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐCustomLogicᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_deployStatus(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Query",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_deployStatus_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().DeployStatus(rctx, args["deployID"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.DeployStatusResponse)
+	fc.Result = res
+	return ec.marshalNDeployStatusResponse2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐDeployStatusResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_testTokens(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -4748,6 +4768,11 @@ func (ec *executionContext) _API(ctx context.Context, sel ast.SelectionSet, obj 
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
+		case "definition":
+			out.Values[i] = ec._API_definition(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "deploys":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -4762,11 +4787,6 @@ func (ec *executionContext) _API(ctx context.Context, sel ast.SelectionSet, obj 
 				}
 				return res
 			})
-		case "definition":
-			out.Values[i] = ec._API_definition(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -5170,23 +5190,23 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "authAPI":
-			out.Values[i] = ec._Mutation_authAPI(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "deployAPI":
-			out.Values[i] = ec._Mutation_deployAPI(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "deleteAPI":
 			out.Values[i] = ec._Mutation_deleteAPI(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "authAPI":
+			out.Values[i] = ec._Mutation_authAPI(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "saveCustomLogic":
 			out.Values[i] = ec._Mutation_saveCustomLogic(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "deployAPI":
+			out.Values[i] = ec._Mutation_deployAPI(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -5274,20 +5294,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				}
 				return res
 			})
-		case "deployStatus":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_deployStatus(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
 		case "auth":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -5308,6 +5314,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_customLogic(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "deployStatus":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_deployStatus(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
