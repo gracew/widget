@@ -115,6 +115,11 @@ type ComplexityRoot struct {
 		Type                 func(childComplexity int) int
 	}
 
+	ListDefinition struct {
+		Filter func(childComplexity int) int
+		Sort   func(childComplexity int) int
+	}
+
 	Mutation struct {
 		AddTestToken    func(childComplexity int, input model.TestTokenInput) int
 		AuthAPI         func(childComplexity int, input model.AuthAPIInput) int
@@ -126,9 +131,9 @@ type ComplexityRoot struct {
 	}
 
 	OperationDefinition struct {
-		Filter func(childComplexity int) int
-		Sort   func(childComplexity int) int
-		Type   func(childComplexity int) int
+		Create func(childComplexity int) int
+		List   func(childComplexity int) int
+		Read   func(childComplexity int) int
 	}
 
 	Query struct {
@@ -478,6 +483,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.FieldDefinition.Type(childComplexity), true
 
+	case "ListDefinition.filter":
+		if e.complexity.ListDefinition.Filter == nil {
+			break
+		}
+
+		return e.complexity.ListDefinition.Filter(childComplexity), true
+
+	case "ListDefinition.sort":
+		if e.complexity.ListDefinition.Sort == nil {
+			break
+		}
+
+		return e.complexity.ListDefinition.Sort(childComplexity), true
+
 	case "Mutation.addTestToken":
 		if e.complexity.Mutation.AddTestToken == nil {
 			break
@@ -562,26 +581,26 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.UpdateAPI(childComplexity, args["input"].(model.UpdateAPIInput)), true
 
-	case "OperationDefinition.filter":
-		if e.complexity.OperationDefinition.Filter == nil {
+	case "OperationDefinition.create":
+		if e.complexity.OperationDefinition.Create == nil {
 			break
 		}
 
-		return e.complexity.OperationDefinition.Filter(childComplexity), true
+		return e.complexity.OperationDefinition.Create(childComplexity), true
 
-	case "OperationDefinition.sort":
-		if e.complexity.OperationDefinition.Sort == nil {
+	case "OperationDefinition.list":
+		if e.complexity.OperationDefinition.List == nil {
 			break
 		}
 
-		return e.complexity.OperationDefinition.Sort(childComplexity), true
+		return e.complexity.OperationDefinition.List(childComplexity), true
 
-	case "OperationDefinition.type":
-		if e.complexity.OperationDefinition.Type == nil {
+	case "OperationDefinition.read":
+		if e.complexity.OperationDefinition.Read == nil {
 			break
 		}
 
-		return e.complexity.OperationDefinition.Type(childComplexity), true
+		return e.complexity.OperationDefinition.Read(childComplexity), true
 
 	case "Query.api":
 		if e.complexity.Query.API == nil {
@@ -770,13 +789,18 @@ type Deploy {
 type APIDefinition {
   name: String!
   fields: [FieldDefinition!]!
-  operations: [OperationDefinition!]!
+  operations: OperationDefinition!
 }
 
 type OperationDefinition {
-  type: OperationType!
-  sort: [SortDefinition!]
-  filter: [String!]
+  create: Boolean
+  read: Boolean
+  list: ListDefinition
+}
+
+type ListDefinition {
+  sort: [SortDefinition!]!
+  filter: [String!]!
 }
 
 enum OperationType {
@@ -1410,9 +1434,9 @@ func (ec *executionContext) _APIDefinition_operations(ctx context.Context, field
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.OperationDefinition)
+	res := resTmp.(*model.OperationDefinition)
 	fc.Result = res
-	return ec.marshalNOperationDefinition2ᚕᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐOperationDefinitionᚄ(ctx, field.Selections, res)
+	return ec.marshalNOperationDefinition2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐOperationDefinition(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Auth_id(ctx context.Context, field graphql.CollectedField, obj *model.Auth) (ret graphql.Marshaler) {
@@ -2523,6 +2547,74 @@ func (ec *executionContext) _FieldDefinition_customLogicPopulated(ctx context.Co
 	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _ListDefinition_sort(ctx context.Context, field graphql.CollectedField, obj *model.ListDefinition) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ListDefinition",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Sort, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.SortDefinition)
+	fc.Result = res
+	return ec.marshalNSortDefinition2ᚕᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐSortDefinitionᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ListDefinition_filter(ctx context.Context, field graphql.CollectedField, obj *model.ListDefinition) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ListDefinition",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Filter, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Mutation_defineAPI(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2810,7 +2902,7 @@ func (ec *executionContext) _Mutation_addTestToken(ctx context.Context, field gr
 	return ec.marshalNTestToken2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐTestToken(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _OperationDefinition_type(ctx context.Context, field graphql.CollectedField, obj *model.OperationDefinition) (ret graphql.Marshaler) {
+func (ec *executionContext) _OperationDefinition_create(ctx context.Context, field graphql.CollectedField, obj *model.OperationDefinition) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2827,24 +2919,21 @@ func (ec *executionContext) _OperationDefinition_type(ctx context.Context, field
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Type, nil
+		return obj.Create, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(model.OperationType)
+	res := resTmp.(*bool)
 	fc.Result = res
-	return ec.marshalNOperationType2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐOperationType(ctx, field.Selections, res)
+	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _OperationDefinition_sort(ctx context.Context, field graphql.CollectedField, obj *model.OperationDefinition) (ret graphql.Marshaler) {
+func (ec *executionContext) _OperationDefinition_read(ctx context.Context, field graphql.CollectedField, obj *model.OperationDefinition) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2861,7 +2950,7 @@ func (ec *executionContext) _OperationDefinition_sort(ctx context.Context, field
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Sort, nil
+		return obj.Read, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2870,12 +2959,12 @@ func (ec *executionContext) _OperationDefinition_sort(ctx context.Context, field
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.([]*model.SortDefinition)
+	res := resTmp.(*bool)
 	fc.Result = res
-	return ec.marshalOSortDefinition2ᚕᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐSortDefinitionᚄ(ctx, field.Selections, res)
+	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _OperationDefinition_filter(ctx context.Context, field graphql.CollectedField, obj *model.OperationDefinition) (ret graphql.Marshaler) {
+func (ec *executionContext) _OperationDefinition_list(ctx context.Context, field graphql.CollectedField, obj *model.OperationDefinition) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2892,7 +2981,7 @@ func (ec *executionContext) _OperationDefinition_filter(ctx context.Context, fie
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Filter, nil
+		return obj.List, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2901,9 +2990,9 @@ func (ec *executionContext) _OperationDefinition_filter(ctx context.Context, fie
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.([]string)
+	res := resTmp.(*model.ListDefinition)
 	fc.Result = res
-	return ec.marshalOString2ᚕstringᚄ(ctx, field.Selections, res)
+	return ec.marshalOListDefinition2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐListDefinition(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_api(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -5024,6 +5113,38 @@ func (ec *executionContext) _FieldDefinition(ctx context.Context, sel ast.Select
 	return out
 }
 
+var listDefinitionImplementors = []string{"ListDefinition"}
+
+func (ec *executionContext) _ListDefinition(ctx context.Context, sel ast.SelectionSet, obj *model.ListDefinition) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, listDefinitionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ListDefinition")
+		case "sort":
+			out.Values[i] = ec._ListDefinition_sort(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "filter":
+			out.Values[i] = ec._ListDefinition_filter(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var mutationImplementors = []string{"Mutation"}
 
 func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -5096,15 +5217,12 @@ func (ec *executionContext) _OperationDefinition(ctx context.Context, sel ast.Se
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("OperationDefinition")
-		case "type":
-			out.Values[i] = ec._OperationDefinition_type(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "sort":
-			out.Values[i] = ec._OperationDefinition_sort(ctx, field, obj)
-		case "filter":
-			out.Values[i] = ec._OperationDefinition_filter(ctx, field, obj)
+		case "create":
+			out.Values[i] = ec._OperationDefinition_create(ctx, field, obj)
+		case "read":
+			out.Values[i] = ec._OperationDefinition_read(ctx, field, obj)
+		case "list":
+			out.Values[i] = ec._OperationDefinition_list(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -5967,43 +6085,6 @@ func (ec *executionContext) marshalNOperationDefinition2githubᚗcomᚋgracewᚋ
 	return ec._OperationDefinition(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNOperationDefinition2ᚕᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐOperationDefinitionᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.OperationDefinition) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNOperationDefinition2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐOperationDefinition(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-	return ret
-}
-
 func (ec *executionContext) marshalNOperationDefinition2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐOperationDefinition(ctx context.Context, sel ast.SelectionSet, v *model.OperationDefinition) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -6029,6 +6110,43 @@ func (ec *executionContext) unmarshalNSaveCustomLogicInput2githubᚗcomᚋgracew
 
 func (ec *executionContext) marshalNSortDefinition2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐSortDefinition(ctx context.Context, sel ast.SelectionSet, v model.SortDefinition) graphql.Marshaler {
 	return ec._SortDefinition(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNSortDefinition2ᚕᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐSortDefinitionᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.SortDefinition) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNSortDefinition2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐSortDefinition(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
 }
 
 func (ec *executionContext) marshalNSortDefinition2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐSortDefinition(ctx context.Context, sel ast.SelectionSet, v *model.SortDefinition) graphql.Marshaler {
@@ -6062,6 +6180,35 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNString2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		res[i], err = ec.unmarshalNString2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalNString2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
+	}
+
+	return ret
 }
 
 func (ec *executionContext) marshalNTestToken2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐTestToken(ctx context.Context, sel ast.SelectionSet, v model.TestToken) graphql.Marshaler {
@@ -6474,44 +6621,15 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 	return ec.marshalOInt2int(ctx, sel, *v)
 }
 
-func (ec *executionContext) marshalOSortDefinition2ᚕᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐSortDefinitionᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.SortDefinition) graphql.Marshaler {
+func (ec *executionContext) marshalOListDefinition2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐListDefinition(ctx context.Context, sel ast.SelectionSet, v model.ListDefinition) graphql.Marshaler {
+	return ec._ListDefinition(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalOListDefinition2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐListDefinition(ctx context.Context, sel ast.SelectionSet, v *model.ListDefinition) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNSortDefinition2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐSortDefinition(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-	return ret
+	return ec._ListDefinition(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOString2string(ctx context.Context, v interface{}) (string, error) {
@@ -6520,38 +6638,6 @@ func (ec *executionContext) unmarshalOString2string(ctx context.Context, v inter
 
 func (ec *executionContext) marshalOString2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
 	return graphql.MarshalString(v)
-}
-
-func (ec *executionContext) unmarshalOString2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {
-	var vSlice []interface{}
-	if v != nil {
-		if tmp1, ok := v.([]interface{}); ok {
-			vSlice = tmp1
-		} else {
-			vSlice = []interface{}{v}
-		}
-	}
-	var err error
-	res := make([]string, len(vSlice))
-	for i := range vSlice {
-		res[i], err = ec.unmarshalNString2string(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
-}
-
-func (ec *executionContext) marshalOString2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	ret := make(graphql.Array, len(v))
-	for i := range v {
-		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
-	}
-
-	return ret
 }
 
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v interface{}) (*string, error) {

@@ -9,9 +9,9 @@ import (
 )
 
 type APIDefinition struct {
-	Name       string                 `json:"name"`
-	Fields     []*FieldDefinition     `json:"fields"`
-	Operations []*OperationDefinition `json:"operations"`
+	Name       string               `json:"name"`
+	Fields     []*FieldDefinition   `json:"fields"`
+	Operations *OperationDefinition `json:"operations"`
 }
 
 type Auth struct {
@@ -81,10 +81,15 @@ type FieldDefinition struct {
 	CustomLogicPopulated *bool       `json:"customLogicPopulated"`
 }
 
-type OperationDefinition struct {
-	Type   OperationType     `json:"type"`
+type ListDefinition struct {
 	Sort   []*SortDefinition `json:"sort"`
 	Filter []string          `json:"filter"`
+}
+
+type OperationDefinition struct {
+	Create *bool           `json:"create"`
+	Read   *bool           `json:"read"`
+	List   *ListDefinition `json:"list"`
 }
 
 type SaveCustomLogicInput struct {
