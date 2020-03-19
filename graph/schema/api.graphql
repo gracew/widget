@@ -11,12 +11,21 @@ type APIDefinition {
 }
 
 type OperationDefinition {
-  create: Boolean
-  read: Boolean
-  list: ListDefinition
+  create: CreateDefinition!
+  read: ReadDefinition!
+  list: ListDefinition!
+}
+
+type CreateDefinition {
+  enabled: Boolean!
+}
+
+type ReadDefinition {
+  enabled: Boolean!
 }
 
 type ListDefinition {
+  enabled: Boolean!
   sort: [SortDefinition!]!
   filter: [String!]!
 }

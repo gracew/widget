@@ -51,6 +51,10 @@ type Constraint struct {
 	MaxLength *int     `json:"maxLength"`
 }
 
+type CreateDefinition struct {
+	Enabled bool `json:"enabled"`
+}
+
 type DefineAPIInput struct {
 	RawDefinition string `json:"rawDefinition"`
 }
@@ -82,14 +86,19 @@ type FieldDefinition struct {
 }
 
 type ListDefinition struct {
-	Sort   []*SortDefinition `json:"sort"`
-	Filter []string          `json:"filter"`
+	Enabled bool              `json:"enabled"`
+	Sort    []*SortDefinition `json:"sort"`
+	Filter  []string          `json:"filter"`
 }
 
 type OperationDefinition struct {
-	Create *bool           `json:"create"`
-	Read   *bool           `json:"read"`
-	List   *ListDefinition `json:"list"`
+	Create *CreateDefinition `json:"create"`
+	Read   *ReadDefinition   `json:"read"`
+	List   *ListDefinition   `json:"list"`
+}
+
+type ReadDefinition struct {
+	Enabled bool `json:"enabled"`
 }
 
 type SaveCustomLogicInput struct {

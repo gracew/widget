@@ -81,6 +81,10 @@ type ComplexityRoot struct {
 		Regex     func(childComplexity int) int
 	}
 
+	CreateDefinition struct {
+		Enabled func(childComplexity int) int
+	}
+
 	CustomLogic struct {
 		APIID         func(childComplexity int) int
 		After         func(childComplexity int) int
@@ -116,8 +120,9 @@ type ComplexityRoot struct {
 	}
 
 	ListDefinition struct {
-		Filter func(childComplexity int) int
-		Sort   func(childComplexity int) int
+		Enabled func(childComplexity int) int
+		Filter  func(childComplexity int) int
+		Sort    func(childComplexity int) int
 	}
 
 	Mutation struct {
@@ -143,6 +148,10 @@ type ComplexityRoot struct {
 		CustomLogic  func(childComplexity int, apiID string) int
 		DeployStatus func(childComplexity int, deployID string) int
 		TestTokens   func(childComplexity int) int
+	}
+
+	ReadDefinition struct {
+		Enabled func(childComplexity int) int
 	}
 
 	SortDefinition struct {
@@ -350,6 +359,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Constraint.Regex(childComplexity), true
 
+	case "CreateDefinition.enabled":
+		if e.complexity.CreateDefinition.Enabled == nil {
+			break
+		}
+
+		return e.complexity.CreateDefinition.Enabled(childComplexity), true
+
 	case "CustomLogic.apiID":
 		if e.complexity.CustomLogic.APIID == nil {
 			break
@@ -482,6 +498,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.FieldDefinition.Type(childComplexity), true
+
+	case "ListDefinition.enabled":
+		if e.complexity.ListDefinition.Enabled == nil {
+			break
+		}
+
+		return e.complexity.ListDefinition.Enabled(childComplexity), true
 
 	case "ListDefinition.filter":
 		if e.complexity.ListDefinition.Filter == nil {
@@ -664,6 +687,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.TestTokens(childComplexity), true
 
+	case "ReadDefinition.enabled":
+		if e.complexity.ReadDefinition.Enabled == nil {
+			break
+		}
+
+		return e.complexity.ReadDefinition.Enabled(childComplexity), true
+
 	case "SortDefinition.field":
 		if e.complexity.SortDefinition.Field == nil {
 			break
@@ -776,12 +806,21 @@ type APIDefinition {
 }
 
 type OperationDefinition {
-  create: Boolean
-  read: Boolean
-  list: ListDefinition
+  create: CreateDefinition!
+  read: ReadDefinition!
+  list: ListDefinition!
+}
+
+type CreateDefinition {
+  enabled: Boolean!
+}
+
+type ReadDefinition {
+  enabled: Boolean!
 }
 
 type ListDefinition {
+  enabled: Boolean!
   sort: [SortDefinition!]!
   filter: [String!]!
 }
@@ -1942,6 +1981,40 @@ func (ec *executionContext) _Constraint_maxLength(ctx context.Context, field gra
 	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _CreateDefinition_enabled(ctx context.Context, field graphql.CollectedField, obj *model.CreateDefinition) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "CreateDefinition",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Enabled, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _CustomLogic_apiID(ctx context.Context, field graphql.CollectedField, obj *model.CustomLogic) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2567,6 +2640,40 @@ func (ec *executionContext) _FieldDefinition_customLogicPopulated(ctx context.Co
 	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _ListDefinition_enabled(ctx context.Context, field graphql.CollectedField, obj *model.ListDefinition) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ListDefinition",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Enabled, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _ListDefinition_sort(ctx context.Context, field graphql.CollectedField, obj *model.ListDefinition) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2946,11 +3053,14 @@ func (ec *executionContext) _OperationDefinition_create(ctx context.Context, fie
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*bool)
+	res := resTmp.(*model.CreateDefinition)
 	fc.Result = res
-	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
+	return ec.marshalNCreateDefinition2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐCreateDefinition(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _OperationDefinition_read(ctx context.Context, field graphql.CollectedField, obj *model.OperationDefinition) (ret graphql.Marshaler) {
@@ -2977,11 +3087,14 @@ func (ec *executionContext) _OperationDefinition_read(ctx context.Context, field
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*bool)
+	res := resTmp.(*model.ReadDefinition)
 	fc.Result = res
-	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
+	return ec.marshalNReadDefinition2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐReadDefinition(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _OperationDefinition_list(ctx context.Context, field graphql.CollectedField, obj *model.OperationDefinition) (ret graphql.Marshaler) {
@@ -3008,11 +3121,14 @@ func (ec *executionContext) _OperationDefinition_list(ctx context.Context, field
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.(*model.ListDefinition)
 	fc.Result = res
-	return ec.marshalOListDefinition2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐListDefinition(ctx, field.Selections, res)
+	return ec.marshalNListDefinition2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐListDefinition(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_api(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3308,6 +3424,40 @@ func (ec *executionContext) _Query___schema(ctx context.Context, field graphql.C
 	res := resTmp.(*introspection.Schema)
 	fc.Result = res
 	return ec.marshalO__Schema2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐSchema(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ReadDefinition_enabled(ctx context.Context, field graphql.CollectedField, obj *model.ReadDefinition) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ReadDefinition",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Enabled, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _SortDefinition_field(ctx context.Context, field graphql.CollectedField, obj *model.SortDefinition) (ret graphql.Marshaler) {
@@ -4949,6 +5099,33 @@ func (ec *executionContext) _Constraint(ctx context.Context, sel ast.SelectionSe
 	return out
 }
 
+var createDefinitionImplementors = []string{"CreateDefinition"}
+
+func (ec *executionContext) _CreateDefinition(ctx context.Context, sel ast.SelectionSet, obj *model.CreateDefinition) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, createDefinitionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CreateDefinition")
+		case "enabled":
+			out.Values[i] = ec._CreateDefinition_enabled(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var customLogicImplementors = []string{"CustomLogic"}
 
 func (ec *executionContext) _CustomLogic(ctx context.Context, sel ast.SelectionSet, obj *model.CustomLogic) graphql.Marshaler {
@@ -5144,6 +5321,11 @@ func (ec *executionContext) _ListDefinition(ctx context.Context, sel ast.Selecti
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("ListDefinition")
+		case "enabled":
+			out.Values[i] = ec._ListDefinition_enabled(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "sort":
 			out.Values[i] = ec._ListDefinition_sort(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -5239,10 +5421,19 @@ func (ec *executionContext) _OperationDefinition(ctx context.Context, sel ast.Se
 			out.Values[i] = graphql.MarshalString("OperationDefinition")
 		case "create":
 			out.Values[i] = ec._OperationDefinition_create(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "read":
 			out.Values[i] = ec._OperationDefinition_read(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "list":
 			out.Values[i] = ec._OperationDefinition_list(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -5351,6 +5542,33 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			out.Values[i] = ec._Query___type(ctx, field)
 		case "__schema":
 			out.Values[i] = ec._Query___schema(ctx, field)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var readDefinitionImplementors = []string{"ReadDefinition"}
+
+func (ec *executionContext) _ReadDefinition(ctx context.Context, sel ast.SelectionSet, obj *model.ReadDefinition) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, readDefinitionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ReadDefinition")
+		case "enabled":
+			out.Values[i] = ec._ReadDefinition_enabled(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -5825,6 +6043,20 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
+func (ec *executionContext) marshalNCreateDefinition2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐCreateDefinition(ctx context.Context, sel ast.SelectionSet, v model.CreateDefinition) graphql.Marshaler {
+	return ec._CreateDefinition(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNCreateDefinition2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐCreateDefinition(ctx context.Context, sel ast.SelectionSet, v *model.CreateDefinition) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._CreateDefinition(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNCustomLogic2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐCustomLogic(ctx context.Context, sel ast.SelectionSet, v model.CustomLogic) graphql.Marshaler {
 	return ec._CustomLogic(ctx, sel, &v)
 }
@@ -6101,6 +6333,20 @@ func (ec *executionContext) marshalNLanguage2githubᚗcomᚋgracewᚋwidgetᚋgr
 	return v
 }
 
+func (ec *executionContext) marshalNListDefinition2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐListDefinition(ctx context.Context, sel ast.SelectionSet, v model.ListDefinition) graphql.Marshaler {
+	return ec._ListDefinition(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNListDefinition2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐListDefinition(ctx context.Context, sel ast.SelectionSet, v *model.ListDefinition) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._ListDefinition(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNOperationDefinition2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐOperationDefinition(ctx context.Context, sel ast.SelectionSet, v model.OperationDefinition) graphql.Marshaler {
 	return ec._OperationDefinition(ctx, sel, &v)
 }
@@ -6122,6 +6368,20 @@ func (ec *executionContext) unmarshalNOperationType2githubᚗcomᚋgracewᚋwidg
 
 func (ec *executionContext) marshalNOperationType2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐOperationType(ctx context.Context, sel ast.SelectionSet, v model.OperationType) graphql.Marshaler {
 	return v
+}
+
+func (ec *executionContext) marshalNReadDefinition2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐReadDefinition(ctx context.Context, sel ast.SelectionSet, v model.ReadDefinition) graphql.Marshaler {
+	return ec._ReadDefinition(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNReadDefinition2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐReadDefinition(ctx context.Context, sel ast.SelectionSet, v *model.ReadDefinition) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._ReadDefinition(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNSaveCustomLogicInput2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐSaveCustomLogicInput(ctx context.Context, v interface{}) (model.SaveCustomLogicInput, error) {
@@ -6639,17 +6899,6 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 		return graphql.Null
 	}
 	return ec.marshalOInt2int(ctx, sel, *v)
-}
-
-func (ec *executionContext) marshalOListDefinition2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐListDefinition(ctx context.Context, sel ast.SelectionSet, v model.ListDefinition) graphql.Marshaler {
-	return ec._ListDefinition(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalOListDefinition2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐListDefinition(ctx context.Context, sel ast.SelectionSet, v *model.ListDefinition) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._ListDefinition(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOString2string(ctx context.Context, v interface{}) (string, error) {
