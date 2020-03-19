@@ -5,20 +5,7 @@
 type API {
   id: ID!
   name: String!
-  deploys: [Deploy!]!
   definition: APIDefinition!
-}
-
-enum Environment {
-  SANDBOX
-  STAGING
-  PRODUCTION
-}
-
-type Deploy {
-  id: ID!
-  apiID: ID!
-  env: Environment!
 }
 
 type APIDefinition {
@@ -36,27 +23,6 @@ type OperationDefinition {
 type ListDefinition {
   sort: [SortDefinition!]!
   filter: [String!]!
-}
-
-enum OperationType {
-  CREATE
-  UPDATE
-  READ
-  LIST
-}
-
-type CustomLogic {
-  apiID: ID!
-  # TODO(gracew): limit this to a CustomLogicOperationType with options CREATE, UPDATE, DELETE
-  operationType: OperationType!
-  language: Language!
-  before: String
-  after: String
-}
-
-enum Language {
-  JAVASCRIPT
-  PYTHON
 }
 
 type SortDefinition {
@@ -100,73 +66,10 @@ type Constraint {
   maxLength: Int
 }
 
-type Auth {
-  id: ID!
-  apiID: ID!
-  authenticationType: AuthenticationType!
-  readPolicy: AuthPolicy!
-  writePolicy: AuthPolicy!
-}
-
-enum AuthenticationType {
-  BUILT_IN
-}
-
-type AuthPolicy {
-  type: AuthPolicyType!
-  # type ATTRIBUTE_MATCH
-  userAttribute: String
-  objectAttribute: String
-}
-
-enum AuthPolicyType {
-  CREATED_BY
-  ATTRIBUTE_MATCH
-  CUSTOM
-}
-
-enum DeployStep {
-  GENERATE_CODE
-  BUILD_IMAGE
-  LAUNCH_CONTAINER
-  LAUNCH_CUSTOM_LOGIC_CONTAINER
-}
-
-enum DeployStatus {
-  IN_PROGRESS
-  COMPLETE
-  FAILED
-}
-
-type DeployStepStatus {
-  deployID: ID!
-  step: DeployStep!
-  status: DeployStatus!
-}
-
-type DeployStatusResponse {
-  steps: [DeployStepStatus!]!
-}
-
-type TestTokenResponse {
-  testTokens: [TestToken!]!
-}
-
-type TestToken {
-  label: String!
-  token: String!
-}
-
 type Query {
   # TODO(gracew): page this
   api(id: ID!): API
   apis: [API!]!
-  deployStatus(deployID: ID!): DeployStatusResponse!
-
-  auth(apiID: ID!): Auth
-  customLogic(apiID: ID!): [CustomLogic!]!
-
-  testTokens: TestTokenResponse!
 }
 
 input DefineAPIInput {
@@ -180,47 +83,8 @@ input UpdateAPIInput {
   rawDefinition: String!
 }
 
-input DeployAPIInput {
-  apiID: ID!
-  # TODO(gracew): this should be provisioned by the server, but this is easier for now...
-  deployID: ID!
-  env: Environment!
-}
-
-input AuthAPIInput {
-  apiID: ID!
-  authenticationType: AuthenticationType!
-  readPolicy: AuthPolicyInput!
-  writePolicy: AuthPolicyInput!
-}
-
-input AuthPolicyInput {
-  type: AuthPolicyType!
-  # type ATTRIBUTE_MATCH
-  userAttribute: String
-  objectAttribute: String
-}
-
-input SaveCustomLogicInput {
-  apiID: ID!
-  operationType: OperationType!
-  language: Language!
-  before: String
-  after: String
-}
-
-input TestTokenInput {
-  label: String!
-  token: String!
-}
-
 type Mutation {
   defineAPI(input: DefineAPIInput!): API!
   updateAPI(input: UpdateAPIInput!): API!
-  authAPI(input: AuthAPIInput!): Boolean!
-  deployAPI(input: DeployAPIInput!): Deploy!
   deleteAPI(id: ID!): Boolean!
-  saveCustomLogic(input: SaveCustomLogicInput!): Boolean!
-
-  addTestToken(input: TestTokenInput!): TestToken!
 }

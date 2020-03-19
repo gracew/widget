@@ -1,0 +1,40 @@
+# GraphQL schema example
+#
+# https://gqlgen.com/getting-started/
+
+type CustomLogic {
+  apiID: ID!
+  # TODO(gracew): limit this to a CustomLogicOperationType with options CREATE, UPDATE, DELETE
+  operationType: OperationType!
+  language: Language!
+  before: String
+  after: String
+}
+
+enum OperationType {
+  CREATE
+  UPDATE
+  READ
+  LIST
+}
+
+enum Language {
+  JAVASCRIPT
+  PYTHON
+}
+
+extend type Query {
+  customLogic(apiID: ID!): [CustomLogic!]!
+}
+
+input SaveCustomLogicInput {
+  apiID: ID!
+  operationType: OperationType!
+  language: Language!
+  before: String
+  after: String
+}
+
+extend type Mutation {
+  saveCustomLogic(input: SaveCustomLogicInput!): Boolean!
+}

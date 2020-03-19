@@ -1,0 +1,50 @@
+# GraphQL schema example
+#
+# https://gqlgen.com/getting-started/
+
+type Auth {
+  id: ID!
+  apiID: ID!
+  authenticationType: AuthenticationType!
+  readPolicy: AuthPolicy!
+  writePolicy: AuthPolicy!
+}
+
+enum AuthenticationType {
+  BUILT_IN
+}
+
+type AuthPolicy {
+  type: AuthPolicyType!
+  # type ATTRIBUTE_MATCH
+  userAttribute: String
+  objectAttribute: String
+}
+
+enum AuthPolicyType {
+  CREATED_BY
+  ATTRIBUTE_MATCH
+  CUSTOM
+}
+
+extend type Query {
+  auth(apiID: ID!): Auth
+}
+
+input AuthAPIInput {
+  apiID: ID!
+  authenticationType: AuthenticationType!
+  readPolicy: AuthPolicyInput!
+  writePolicy: AuthPolicyInput!
+}
+
+input AuthPolicyInput {
+  type: AuthPolicyType!
+  # type ATTRIBUTE_MATCH
+  userAttribute: String
+  objectAttribute: String
+}
+
+extend type Mutation {
+  authAPI(input: AuthAPIInput!): Boolean!
+}
