@@ -5,13 +5,19 @@ package graph
 import (
 	"context"
 	"encoding/json"
-	"errors"
 
 	"github.com/go-pg/pg"
 	"github.com/google/uuid"
+	"github.com/gracew/widget/grafana"
 	"github.com/gracew/widget/graph/generated"
 	"github.com/gracew/widget/graph/model"
+	"github.com/gracew/widget/launch"
+	"github.com/pkg/errors"
 )
+
+func (r *aPIResolver) Deploys(ctx context.Context, obj *model.API) ([]*model.Deploy, error) {
+	return r.Store.Deploys(obj.ID)
+}
 
 func (r *mutationResolver) DefineAPI(ctx context.Context, input model.DefineAPIInput) (*model.API, error) {
 	var definition model.APIDefinition
@@ -86,6 +92,64 @@ func (r *mutationResolver) AuthAPI(ctx context.Context, input model.AuthAPIInput
 	return true, nil
 }
 
+func (r *mutationResolver) DeployAPI(ctx context.Context, input model.DeployAPIInput) (*model.Deploy, error) {
+	db := pg.Connect(&pg.Options{User: "postgres"})
+	defer db.Close()
+
+	// TODO(gracew): parallelize these db calls lol
+	api, err := r.Store.API(input.APIID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "could not fetch api %s", input.APIID)
+	}
+
+	auth, err := r.Store.Auth(input.APIID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "could not fetch auth for api %s", input.APIID)
+	}
+
+	customLogic, err := r.Store.CustomLogic(input.APIID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "could not fetch custom logic for api %s", input.APIID)
+	}
+
+	deploy := &model.Deploy{
+		ID:    input.DeployID,
+		APIID: input.APIID,
+		Env:   input.Env,
+	}
+	err = db.Insert(deploy)
+	if err != nil {
+		return nil, errors.Wrapf(err, "could not save deploy metadata for api %s", input.APIID)
+	}
+
+	launcher := launch.Launcher{
+		Store:       r.Store,
+		DeployID:    deploy.ID,
+		API:         *api,
+		Auth:        *auth,
+		CustomLogic: customLogic,
+	}
+
+	err = launcher.DeployAPI()
+	if err != nil {
+		return nil, errors.Wrapf(err, "could not launch container for api %s", input.APIID)
+	}
+
+	if len(customLogic) > 0 {
+		err = launcher.DeployCustomLogic()
+		if err != nil {
+			return nil, errors.Wrapf(err, "could not launch custom logic for api %s", input.APIID)
+		}
+	}
+
+	err = grafana.ImportDashboard(api.Name, *deploy, customLogic)
+	if err != nil {
+		return nil, errors.Wrapf(err, "could not create grafana dashboard for api %s", input.APIID)
+	}
+
+	return deploy, nil
+}
+
 func (r *mutationResolver) DeleteAPI(ctx context.Context, id string) (bool, error) {
 	err := r.Store.DeleteApi(id)
 	if err != nil {
@@ -114,6 +178,22 @@ func (r *mutationResolver) SaveCustomLogic(ctx context.Context, input model.Save
 	return true, nil
 }
 
+func (r *mutationResolver) AddTestToken(ctx context.Context, input model.TestTokenInput) (*model.TestToken, error) {
+	db := pg.Connect(&pg.Options{User: "postgres"})
+	defer db.Close()
+
+	token := &model.TestToken{
+		// TODO(gracew): enforce label uniqueness?
+		Label: input.Label,
+		Token: input.Token,
+	}
+	err := db.Insert(token)
+	if err != nil {
+		return nil, err
+	}
+	return token, nil
+}
+
 func (r *queryResolver) API(ctx context.Context, id string) (*model.API, error) {
 	return r.Store.API(id)
 }
@@ -122,12 +202,34 @@ func (r *queryResolver) Apis(ctx context.Context) ([]*model.API, error) {
 	return r.Store.Apis()
 }
 
+func (r *queryResolver) DeployStatus(ctx context.Context, deployID string) (*model.DeployStatusResponse, error) {
+	steps, err := r.Store.DeployStatus(deployID)
+	if err != nil {
+		return nil, err
+	}
+	return &model.DeployStatusResponse{Steps: steps}, nil
+}
+
 func (r *queryResolver) Auth(ctx context.Context, apiID string) (*model.Auth, error) {
 	return r.Store.Auth(apiID)
 }
 
 func (r *queryResolver) CustomLogic(ctx context.Context, apiID string) ([]*model.CustomLogic, error) {
 	return r.Store.CustomLogic(apiID)
+}
+
+func (r *queryResolver) TestTokens(ctx context.Context) (*model.TestTokenResponse, error) {
+	db := pg.Connect(&pg.Options{User: "postgres"})
+	defer db.Close()
+
+	var tokens []model.TestToken
+	db.Model(&tokens).Select()
+
+	var res []*model.TestToken
+	for i := 0; i < len(tokens); i++ {
+		res = append(res, &tokens[i])
+	}
+	return &model.TestTokenResponse{TestTokens: res}, nil
 }
 
 func (r *Resolver) API() generated.APIResolver           { return &aPIResolver{r} }
