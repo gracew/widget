@@ -24,13 +24,18 @@ type Deploy {
 type APIDefinition {
   name: String!
   fields: [FieldDefinition!]!
-  operations: [OperationDefinition!]!
+  operations: OperationDefinition!
 }
 
 type OperationDefinition {
-  type: OperationType!
-  sort: [SortDefinition!]
-  filter: [String!]
+  create: Boolean
+  read: Boolean
+  list: ListDefinition
+}
+
+type ListDefinition {
+  sort: [SortDefinition!]!
+  filter: [String!]!
 }
 
 enum OperationType {
