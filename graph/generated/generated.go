@@ -763,145 +763,7 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	&ast.Source{Name: "graph/schema/auth.graphql", Input: `type Auth {
-  id: ID!
-  apiID: ID!
-  authenticationType: AuthenticationType!
-  readPolicy: AuthPolicy!
-  writePolicy: AuthPolicy!
-}
-
-enum AuthenticationType {
-  BUILT_IN
-}
-
-type AuthPolicy {
-  type: AuthPolicyType!
-  # type ATTRIBUTE_MATCH
-  userAttribute: String
-  objectAttribute: String
-}
-
-enum AuthPolicyType {
-  CREATED_BY
-  ATTRIBUTE_MATCH
-  CUSTOM
-}
-
-extend type Query {
-  auth(apiID: ID!): Auth
-}
-
-input AuthAPIInput {
-  apiID: ID!
-  authenticationType: AuthenticationType!
-  readPolicy: AuthPolicyInput!
-  writePolicy: AuthPolicyInput!
-}
-
-input AuthPolicyInput {
-  type: AuthPolicyType!
-  # type ATTRIBUTE_MATCH
-  userAttribute: String
-  objectAttribute: String
-}
-
-extend type Mutation {
-  authAPI(input: AuthAPIInput!): Boolean!
-}
-`, BuiltIn: false},
-	&ast.Source{Name: "graph/schema/customLogic.graphql", Input: `type CustomLogic {
-  apiID: ID!
-  # TODO(gracew): limit this to a CustomLogicOperationType with options CREATE, UPDATE, DELETE
-  operationType: OperationType!
-  language: Language!
-  before: String
-  after: String
-}
-
-enum OperationType {
-  CREATE
-  UPDATE
-  READ
-  LIST
-}
-
-enum Language {
-  JAVASCRIPT
-  PYTHON
-}
-
-extend type Query {
-  customLogic(apiID: ID!): [CustomLogic!]!
-}
-
-input SaveCustomLogicInput {
-  apiID: ID!
-  operationType: OperationType!
-  language: Language!
-  before: String
-  after: String
-}
-
-extend type Mutation {
-  saveCustomLogic(input: SaveCustomLogicInput!): Boolean!
-}
-`, BuiltIn: false},
-	&ast.Source{Name: "graph/schema/deploys.graphql", Input: `enum Environment {
-  SANDBOX
-  STAGING
-  PRODUCTION
-}
-
-type Deploy {
-  id: ID!
-  apiID: ID!
-  env: Environment!
-}
-
-extend type API {
-  deploys: [Deploy!]!
-}
-
-enum DeployStep {
-  GENERATE_CODE
-  BUILD_IMAGE
-  LAUNCH_CONTAINER
-  LAUNCH_CUSTOM_LOGIC_CONTAINER
-}
-
-enum DeployStatus {
-  IN_PROGRESS
-  COMPLETE
-  FAILED
-}
-
-type DeployStepStatus {
-  deployID: ID!
-  step: DeployStep!
-  status: DeployStatus!
-}
-
-type DeployStatusResponse {
-  steps: [DeployStepStatus!]!
-}
-
-extend type Query {
-  deployStatus(deployID: ID!): DeployStatusResponse!
-}
-
-input DeployAPIInput {
-  apiID: ID!
-  # TODO(gracew): this should be provisioned by the server, but this is easier for now...
-  deployID: ID!
-  env: Environment!
-}
-
-extend type Mutation {
-  deployAPI(input: DeployAPIInput!): Deploy!
-}
-`, BuiltIn: false},
-	&ast.Source{Name: "graph/schema/schema.graphql", Input: `type API {
+	&ast.Source{Name: "graph/schema/api.graphql", Input: `type API {
   id: ID!
   name: String!
   definition: APIDefinition!
@@ -988,7 +850,145 @@ type Mutation {
   deleteAPI(id: ID!): Boolean!
 }
 `, BuiltIn: false},
-	&ast.Source{Name: "graph/schema/tokens.graphql", Input: `type TestTokenResponse {
+	&ast.Source{Name: "graph/schema/auth.graphql", Input: `type Auth {
+  id: ID!
+  apiID: ID!
+  authenticationType: AuthenticationType!
+  readPolicy: AuthPolicy!
+  writePolicy: AuthPolicy!
+}
+
+enum AuthenticationType {
+  BUILT_IN
+}
+
+type AuthPolicy {
+  type: AuthPolicyType!
+  # type ATTRIBUTE_MATCH
+  userAttribute: String
+  objectAttribute: String
+}
+
+enum AuthPolicyType {
+  CREATED_BY
+  ATTRIBUTE_MATCH
+  CUSTOM
+}
+
+extend type Query {
+  auth(apiID: ID!): Auth
+}
+
+input AuthAPIInput {
+  apiID: ID!
+  authenticationType: AuthenticationType!
+  readPolicy: AuthPolicyInput!
+  writePolicy: AuthPolicyInput!
+}
+
+input AuthPolicyInput {
+  type: AuthPolicyType!
+  # type ATTRIBUTE_MATCH
+  userAttribute: String
+  objectAttribute: String
+}
+
+extend type Mutation {
+  authAPI(input: AuthAPIInput!): Boolean!
+}
+`, BuiltIn: false},
+	&ast.Source{Name: "graph/schema/customLogic.graphql", Input: `type CustomLogic {
+  apiID: ID!
+  # TODO(gracew): limit this to a CustomLogicOperationType with options CREATE, UPDATE, DELETE
+  operationType: OperationType!
+  language: Language!
+  before: String
+  after: String
+}
+
+enum OperationType {
+  CREATE
+  UPDATE
+  READ
+  LIST
+}
+
+enum Language {
+  JAVASCRIPT
+  PYTHON
+}
+
+extend type Query {
+  customLogic(apiID: ID!): [CustomLogic!]!
+}
+
+input SaveCustomLogicInput {
+  apiID: ID!
+  operationType: OperationType!
+  language: Language!
+  before: String
+  after: String
+}
+
+extend type Mutation {
+  saveCustomLogic(input: SaveCustomLogicInput!): Boolean!
+}
+`, BuiltIn: false},
+	&ast.Source{Name: "graph/schema/deploy.graphql", Input: `enum Environment {
+  SANDBOX
+  STAGING
+  PRODUCTION
+}
+
+type Deploy {
+  id: ID!
+  apiID: ID!
+  env: Environment!
+}
+
+extend type API {
+  deploys: [Deploy!]!
+}
+
+enum DeployStep {
+  GENERATE_CODE
+  BUILD_IMAGE
+  LAUNCH_CONTAINER
+  LAUNCH_CUSTOM_LOGIC_CONTAINER
+}
+
+enum DeployStatus {
+  IN_PROGRESS
+  COMPLETE
+  FAILED
+}
+
+type DeployStepStatus {
+  deployID: ID!
+  step: DeployStep!
+  status: DeployStatus!
+}
+
+type DeployStatusResponse {
+  steps: [DeployStepStatus!]!
+}
+
+extend type Query {
+  deployStatus(deployID: ID!): DeployStatusResponse!
+}
+
+input DeployAPIInput {
+  apiID: ID!
+  # TODO(gracew): this should be provisioned by the server, but this is easier for now...
+  deployID: ID!
+  env: Environment!
+}
+
+extend type Mutation {
+  deployAPI(input: DeployAPIInput!): Deploy!
+}
+`, BuiltIn: false},
+	&ast.Source{Name: "graph/schema/token.graphql", Input: `type TestTokenResponse {
   testTokens: [TestToken!]!
 }
 
