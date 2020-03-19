@@ -763,11 +763,7 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	&ast.Source{Name: "graph/auth.graphql", Input: `# GraphQL schema example
-#
-# https://gqlgen.com/getting-started/
-
-type Auth {
+	&ast.Source{Name: "graph/schema/auth.graphql", Input: `type Auth {
   id: ID!
   apiID: ID!
   authenticationType: AuthenticationType!
@@ -814,11 +810,7 @@ extend type Mutation {
   authAPI(input: AuthAPIInput!): Boolean!
 }
 `, BuiltIn: false},
-	&ast.Source{Name: "graph/customLogic.graphql", Input: `# GraphQL schema example
-#
-# https://gqlgen.com/getting-started/
-
-type CustomLogic {
+	&ast.Source{Name: "graph/schema/customLogic.graphql", Input: `type CustomLogic {
   apiID: ID!
   # TODO(gracew): limit this to a CustomLogicOperationType with options CREATE, UPDATE, DELETE
   operationType: OperationType!
@@ -855,11 +847,7 @@ extend type Mutation {
   saveCustomLogic(input: SaveCustomLogicInput!): Boolean!
 }
 `, BuiltIn: false},
-	&ast.Source{Name: "graph/deploys.graphql", Input: `# GraphQL schema example
-#
-# https://gqlgen.com/getting-started/
-
-enum Environment {
+	&ast.Source{Name: "graph/schema/deploys.graphql", Input: `enum Environment {
   SANDBOX
   STAGING
   PRODUCTION
@@ -913,11 +901,7 @@ extend type Mutation {
   deployAPI(input: DeployAPIInput!): Deploy!
 }
 `, BuiltIn: false},
-	&ast.Source{Name: "graph/schema.graphql", Input: `# GraphQL schema example
-#
-# https://gqlgen.com/getting-started/
-
-type API {
+	&ast.Source{Name: "graph/schema/schema.graphql", Input: `type API {
   id: ID!
   name: String!
   definition: APIDefinition!
@@ -1004,11 +988,7 @@ type Mutation {
   deleteAPI(id: ID!): Boolean!
 }
 `, BuiltIn: false},
-	&ast.Source{Name: "graph/tokens.graphql", Input: `# GraphQL schema example
-#
-# https://gqlgen.com/getting-started/
-
-type TestTokenResponse {
+	&ast.Source{Name: "graph/schema/tokens.graphql", Input: `type TestTokenResponse {
   testTokens: [TestToken!]!
 }
 
