@@ -1016,7 +1016,7 @@ extend type API {
   operations: OperationDefinition!
 }
 
-extend input UpdateOperationsInput {
+extend input UpdateAPIInput {
   operations: OperationDefinitionInput
 }
 
@@ -5027,18 +5027,6 @@ func (ec *executionContext) unmarshalInputUpdateAPIInput(ctx context.Context, ob
 			if err != nil {
 				return it, err
 			}
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputUpdateOperationsInput(ctx context.Context, obj interface{}) (model.UpdateOperationsInput, error) {
-	var it model.UpdateOperationsInput
-	var asMap = obj.(map[string]interface{})
-
-	for k, v := range asMap {
-		switch k {
 		case "operations":
 			var err error
 			it.Operations, err = ec.unmarshalOOperationDefinitionInput2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐOperationDefinitionInput(ctx, v)

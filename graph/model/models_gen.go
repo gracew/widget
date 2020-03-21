@@ -154,11 +154,8 @@ type TestTokenResponse struct {
 }
 
 type UpdateAPIInput struct {
-	ID     string                  `json:"id"`
-	Fields []*FieldDefinitionInput `json:"fields"`
-}
-
-type UpdateOperationsInput struct {
+	ID         string                    `json:"id"`
+	Fields     []*FieldDefinitionInput   `json:"fields"`
 	Operations *OperationDefinitionInput `json:"operations"`
 }
 

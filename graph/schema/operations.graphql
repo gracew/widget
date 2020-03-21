@@ -33,7 +33,7 @@ extend type API {
   operations: OperationDefinition!
 }
 
-extend input UpdateOperationsInput {
+extend input UpdateAPIInput {
   operations: OperationDefinitionInput
 }
 
