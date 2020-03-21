@@ -1,15 +1,58 @@
 package store
 
 import (
+	"encoding/json"
 	"log"
 
 	"github.com/go-pg/pg"
+	"github.com/google/uuid"
 	"github.com/gracew/widget/graph/model"
 	"github.com/pkg/errors"
 )
 
 type Store struct {
 	DB *pg.DB
+}
+
+func (s Store) NewAPI(input model.DefineAPIInput) (*model.API, error) {
+	// janky way of converting from DefineAPIInput -> API
+	bytes, err := json.Marshal(input)
+	if err != nil {
+		return nil, errors.Wrapf(err, "could not marshal input to json");
+	}
+
+	var api model.API
+	err = json.Unmarshal(bytes, &api)
+	if err != nil {
+		return nil, errors.Wrapf(err, "could not unmarshal bytes as json");
+	}
+
+	api.ID = uuid.New().String()
+	err = s.DB.Insert(&api)
+	if err != nil {
+		return nil, err
+	}
+	return &api, nil
+}
+
+func (s Store) UpdateAPI(input model.UpdateAPIInput) (*model.API, error) {
+	// janky way of converting from UpdateAPIInput -> API
+	bytes, err := json.Marshal(input)
+	if err != nil {
+		return nil, errors.Wrapf(err, "could not marshal input to json");
+	}
+
+	var api model.API
+	err = json.Unmarshal(bytes, &api)
+	if err != nil {
+		return nil, errors.Wrapf(err, "could not unmarshal bytes as json");
+	}
+
+	err = s.DB.Update(&api)
+	if err != nil {
+		return nil, err
+	}
+	return &api, nil
 }
 
 // API fetches an API by ID.
@@ -49,16 +92,13 @@ func (s Store) DeleteApi(id string) error {
 
 // Auth fetches auth for the specified API.
 func (s Store) Auth(apiID string) (*model.Auth, error) {
-	var auths []model.Auth
-	err := s.DB.Model(&auths).WhereIn("apiid IN (?)", []string{apiID}).Select()
+	auth := &model.Auth{APIID: apiID}
+	err := s.DB.Select(auth)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to fetch auth for API %s", apiID)
 	}
 
-	if len(auths) == 0 {
-		return nil, nil
-	}
-	return &auths[0], nil
+	return auth, nil
 }
 
 func (s Store) CustomLogic(apiID string) ([]*model.CustomLogic, error) {

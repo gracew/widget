@@ -1,5 +1,4 @@
 type Auth {
-  id: ID!
   apiID: ID!
   authenticationType: AuthenticationType!
   readPolicy: AuthPolicy!

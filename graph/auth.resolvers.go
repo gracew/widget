@@ -6,7 +6,6 @@ import (
 	"context"
 
 	"github.com/go-pg/pg"
-	"github.com/google/uuid"
 	"github.com/gracew/widget/graph/model"
 )
 
@@ -15,7 +14,6 @@ func (r *mutationResolver) AuthAPI(ctx context.Context, input model.AuthAPIInput
 	defer db.Close()
 
 	err := db.Insert(&model.Auth{
-		ID:                 uuid.New().String(),
 		APIID:              input.APIID,
 		AuthenticationType: input.AuthenticationType,
 		ReadPolicy: &model.AuthPolicy{

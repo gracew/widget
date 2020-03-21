@@ -10,7 +10,7 @@ import (
 )
 
 func TestGenerateCode(t *testing.T) {
-	api := model.API{Definition: &model.APIDefinition{
+	api := model.API{
 		Fields: []*model.FieldDefinition{
 			&model.FieldDefinition{Name: "foo", Type: model.TypeBoolean},
 			&model.FieldDefinition{Name: "bar", Type: model.TypeFloat},
@@ -18,7 +18,7 @@ func TestGenerateCode(t *testing.T) {
 			&model.FieldDefinition{Name: "qux", Type: model.TypeString},
 			&model.FieldDefinition{Name: "camelCase", Type: model.TypeString},
 		},
-	}}
+	}
 
 	l := Launcher{API: api}
 	generated, err := l.generateCode()

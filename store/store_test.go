@@ -9,6 +9,45 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestNewAPI(t *testing.T) {
+	db := pg.Connect(&pg.Options{User: "postgres" })
+	defer db.Close()
+	s := Store{DB: db}
+
+	name := uuid.New().String()
+	input := model.DefineAPIInput{
+		Name: name,
+			Fields: []*model.FieldDefinitionInput{
+			&model.FieldDefinitionInput{Name: "foo", Type: model.TypeBoolean,
+		},
+	}}
+	createRes, err := s.NewAPI(input)
+	assert.Nil(t, err)
+	assert.Equal(t, name, createRes.Name)
+	assert.Equal(t, []*model.FieldDefinition{
+		&model.FieldDefinition{Name: "foo", Type: model.TypeBoolean},
+	}, createRes.Fields)
+
+	getRes, err := s.API(createRes.ID)
+	assert.Nil(t, err)
+	assert.Equal(t, createRes, getRes)
+
+	update := model.UpdateAPIInput{
+		ID: createRes.ID,
+		Fields: []*model.FieldDefinitionInput{
+			&model.FieldDefinitionInput{Name: "foo", Type: model.TypeBoolean},
+			&model.FieldDefinitionInput{Name: "bar", Type: model.TypeFloat},
+		},
+	}
+	updateRes, err := s.UpdateAPI(update)
+	assert.Nil(t, err)
+	// assert.Equal(t, name, updateRes.Name)
+	assert.Equal(t, []*model.FieldDefinition{
+		&model.FieldDefinition{Name: "foo", Type: model.TypeBoolean},
+		&model.FieldDefinition{Name: "bar", Type: model.TypeFloat},
+	}, updateRes.Fields)
+}
+
 func TestDeployStatus(t *testing.T) {
 	db := pg.Connect(&pg.Options{User: "postgres" })
 	defer db.Close()

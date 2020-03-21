@@ -1,10 +1,25 @@
 package model
 
 type API struct {
-	ID         string         `json:"id"`
-	Name       string         `json:"name"`
-	DeployIds    []string      `json:"deploys"`
-	Definition *APIDefinition `json:"definition"`
+	ID         string               `json:"id"`
+	Name       string               `json:"name"`
+	Fields     []*FieldDefinition   `json:"fields"`
+	DeployIds  []string      		`json:"deploys"`
+	Operations *OperationDefinition `json:"operations"`
+}
+
+type OperationDefinition struct {
+	APIID  string            `json:"apiID" sql:",pk"`
+	Create *CreateDefinition `json:"create"`
+	Read   *ReadDefinition   `json:"read"`
+	List   *ListDefinition   `json:"list"`
+}
+
+type Auth struct {
+	APIID              string             `json:"apiID" sql:",pk"`
+	AuthenticationType AuthenticationType `json:"authenticationType"`
+	ReadPolicy         *AuthPolicy        `json:"readPolicy"`
+	WritePolicy        *AuthPolicy        `json:"writePolicy"`
 }
 
 type CustomLogic struct {
