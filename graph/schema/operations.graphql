@@ -1,5 +1,4 @@
 type OperationDefinition {
-  apiID: ID!
   create: CreateDefinition!
   read: ReadDefinition!
   list: ListDefinition!
