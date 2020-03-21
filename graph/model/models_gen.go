@@ -9,10 +9,9 @@ import (
 )
 
 type AuthAPIInput struct {
-	APIID              string             `json:"apiID"`
-	AuthenticationType AuthenticationType `json:"authenticationType"`
-	ReadPolicy         *AuthPolicyInput   `json:"readPolicy"`
-	WritePolicy        *AuthPolicyInput   `json:"writePolicy"`
+	APIID       string           `json:"apiID"`
+	ReadPolicy  *AuthPolicyInput `json:"readPolicy"`
+	WritePolicy *AuthPolicyInput `json:"writePolicy"`
 }
 
 type AuthPolicy struct {
@@ -200,45 +199,6 @@ func (e *AuthPolicyType) UnmarshalGQL(v interface{}) error {
 }
 
 func (e AuthPolicyType) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
-}
-
-type AuthenticationType string
-
-const (
-	AuthenticationTypeBuiltIn AuthenticationType = "BUILT_IN"
-)
-
-var AllAuthenticationType = []AuthenticationType{
-	AuthenticationTypeBuiltIn,
-}
-
-func (e AuthenticationType) IsValid() bool {
-	switch e {
-	case AuthenticationTypeBuiltIn:
-		return true
-	}
-	return false
-}
-
-func (e AuthenticationType) String() string {
-	return string(e)
-}
-
-func (e *AuthenticationType) UnmarshalGQL(v interface{}) error {
-	str, ok := v.(string)
-	if !ok {
-		return fmt.Errorf("enums must be strings")
-	}
-
-	*e = AuthenticationType(str)
-	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid AuthenticationType", str)
-	}
-	return nil
-}
-
-func (e AuthenticationType) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 

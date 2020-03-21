@@ -17,7 +17,6 @@ type OperationDefinition struct {
 
 type Auth struct {
 	APIID              string             `json:"apiID" sql:",pk"`
-	AuthenticationType AuthenticationType `json:"authenticationType"`
 	ReadPolicy         *AuthPolicy        `json:"readPolicy"`
 	WritePolicy        *AuthPolicy        `json:"writePolicy"`
 }

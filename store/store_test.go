@@ -48,6 +48,37 @@ func TestNewAPI(t *testing.T) {
 	}, updateRes.Fields)
 }
 
+func TestAuth(t *testing.T) {
+	db := pg.Connect(&pg.Options{User: "postgres" })
+	defer db.Close()
+	s := Store{DB: db}
+
+	apiID := uuid.New().String()
+	input := model.AuthAPIInput{
+		APIID: apiID,
+		ReadPolicy: &model.AuthPolicyInput{Type: model.AuthPolicyTypeCreatedBy},
+	}
+	err := s.SaveAuth(input)
+	assert.Nil(t, err)
+
+	auth, err := s.Auth(input.APIID)
+	assert.Nil(t, err)
+	assert.Equal(t, input.APIID, auth.APIID)
+	assert.Equal(t, &model.AuthPolicy{Type: model.AuthPolicyTypeCreatedBy}, auth.ReadPolicy)
+
+	update := model.AuthAPIInput{
+		APIID: apiID,
+		ReadPolicy: &model.AuthPolicyInput{Type: model.AuthPolicyTypeAttributeMatch},
+	}
+
+	err = s.SaveAuth(update)
+	assert.Nil(t, err)
+
+	auth2, err := s.Auth(input.APIID)
+	assert.Nil(t, err)
+	assert.Equal(t, &model.AuthPolicy{Type: model.AuthPolicyTypeAttributeMatch}, auth2.ReadPolicy)
+}
+
 func TestDeployStatus(t *testing.T) {
 	db := pg.Connect(&pg.Options{User: "postgres" })
 	defer db.Close()

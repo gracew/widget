@@ -1,12 +1,7 @@
 type Auth {
   apiID: ID!
-  authenticationType: AuthenticationType!
   readPolicy: AuthPolicy!
   writePolicy: AuthPolicy!
-}
-
-enum AuthenticationType {
-  BUILT_IN
 }
 
 type AuthPolicy {
@@ -28,7 +23,6 @@ extend type Query {
 
 input AuthAPIInput {
   apiID: ID!
-  authenticationType: AuthenticationType!
   readPolicy: AuthPolicyInput!
   writePolicy: AuthPolicyInput!
 }

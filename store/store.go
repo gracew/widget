@@ -90,6 +90,25 @@ func (s Store) DeleteApi(id string) error {
 	return nil
 }
 
+func (s Store) SaveAuth(input model.AuthAPIInput) error {
+	bytes, err := json.Marshal(input)
+	if err != nil {
+		return errors.Wrapf(err, "could not marshal input to json");
+	}
+
+	var auth model.Auth
+	err = json.Unmarshal(bytes, &auth)
+	if err != nil {
+		return errors.Wrapf(err, "could not unmarshal bytes as json");
+	}
+
+	_, err = s.DB.Model(&auth).OnConflict("(apiid) DO UPDATE").Insert()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // Auth fetches auth for the specified API.
 func (s Store) Auth(apiID string) (*model.Auth, error) {
 	auth := &model.Auth{APIID: apiID}

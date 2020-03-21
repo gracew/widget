@@ -53,10 +53,9 @@ type ComplexityRoot struct {
 	}
 
 	Auth struct {
-		APIID              func(childComplexity int) int
-		AuthenticationType func(childComplexity int) int
-		ReadPolicy         func(childComplexity int) int
-		WritePolicy        func(childComplexity int) int
+		APIID       func(childComplexity int) int
+		ReadPolicy  func(childComplexity int) int
+		WritePolicy func(childComplexity int) int
 	}
 
 	AuthPolicy struct {
@@ -243,13 +242,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Auth.APIID(childComplexity), true
-
-	case "Auth.authenticationType":
-		if e.complexity.Auth.AuthenticationType == nil {
-			break
-		}
-
-		return e.complexity.Auth.AuthenticationType(childComplexity), true
 
 	case "Auth.readPolicy":
 		if e.complexity.Auth.ReadPolicy == nil {
@@ -874,13 +866,8 @@ type Mutation {
 `, BuiltIn: false},
 	&ast.Source{Name: "graph/schema/auth.graphql", Input: `type Auth {
   apiID: ID!
-  authenticationType: AuthenticationType!
   readPolicy: AuthPolicy!
   writePolicy: AuthPolicy!
-}
-
-enum AuthenticationType {
-  BUILT_IN
 }
 
 type AuthPolicy {
@@ -902,7 +889,6 @@ extend type Query {
 
 input AuthAPIInput {
   apiID: ID!
-  authenticationType: AuthenticationType!
   readPolicy: AuthPolicyInput!
   writePolicy: AuthPolicyInput!
 }
@@ -1523,40 +1509,6 @@ func (ec *executionContext) _Auth_apiID(ctx context.Context, field graphql.Colle
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNID2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Auth_authenticationType(ctx context.Context, field graphql.CollectedField, obj *model.Auth) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Auth",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.AuthenticationType, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(model.AuthenticationType)
-	fc.Result = res
-	return ec.marshalNAuthenticationType2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐAuthenticationType(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Auth_readPolicy(ctx context.Context, field graphql.CollectedField, obj *model.Auth) (ret graphql.Marshaler) {
@@ -4731,12 +4683,6 @@ func (ec *executionContext) unmarshalInputAuthAPIInput(ctx context.Context, obj 
 			if err != nil {
 				return it, err
 			}
-		case "authenticationType":
-			var err error
-			it.AuthenticationType, err = ec.unmarshalNAuthenticationType2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐAuthenticationType(ctx, v)
-			if err != nil {
-				return it, err
-			}
 		case "readPolicy":
 			var err error
 			it.ReadPolicy, err = ec.unmarshalNAuthPolicyInput2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐAuthPolicyInput(ctx, v)
@@ -5240,11 +5186,6 @@ func (ec *executionContext) _Auth(ctx context.Context, sel ast.SelectionSet, obj
 			out.Values[i] = graphql.MarshalString("Auth")
 		case "apiID":
 			out.Values[i] = ec._Auth_apiID(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "authenticationType":
-			out.Values[i] = ec._Auth_authenticationType(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -6250,15 +6191,6 @@ func (ec *executionContext) unmarshalNAuthPolicyType2githubᚗcomᚋgracewᚋwid
 }
 
 func (ec *executionContext) marshalNAuthPolicyType2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐAuthPolicyType(ctx context.Context, sel ast.SelectionSet, v model.AuthPolicyType) graphql.Marshaler {
-	return v
-}
-
-func (ec *executionContext) unmarshalNAuthenticationType2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐAuthenticationType(ctx context.Context, v interface{}) (model.AuthenticationType, error) {
-	var res model.AuthenticationType
-	return res, res.UnmarshalGQL(v)
-}
-
-func (ec *executionContext) marshalNAuthenticationType2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐAuthenticationType(ctx context.Context, sel ast.SelectionSet, v model.AuthenticationType) graphql.Marshaler {
 	return v
 }
 
