@@ -48,7 +48,8 @@ func (s Store) UpdateAPI(input model.UpdateAPIInput) (*model.API, error) {
 		return nil, errors.Wrapf(err, "could not unmarshal bytes as json");
 	}
 
-	err = s.DB.Update(&api)
+	// TODO(gracew): figure out better way to not clobber name
+	_, err = s.DB.Model(&api).Column("fields").Column("operations").WherePK().Update()
 	if err != nil {
 		return nil, err
 	}

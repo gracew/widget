@@ -8,13 +8,6 @@ type API struct {
 	Operations *OperationDefinition `json:"operations"`
 }
 
-type OperationDefinition struct {
-	APIID  string            `json:"apiID" sql:",pk"`
-	Create *CreateDefinition `json:"create"`
-	Read   *ReadDefinition   `json:"read"`
-	List   *ListDefinition   `json:"list"`
-}
-
 type Auth struct {
 	APIID              string             `json:"apiID" sql:",pk"`
 	ReadPolicy         *AuthPolicy        `json:"readPolicy"`

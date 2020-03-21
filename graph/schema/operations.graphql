@@ -29,7 +29,7 @@ enum SortOrder {
 }
 
 extend type API {
-  operations: OperationDefinition!
+  operations: OperationDefinition
 }
 
 extend input UpdateAPIInput {
