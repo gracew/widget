@@ -45,24 +45,17 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	API struct {
-		Definition func(childComplexity int) int
 		Deploys    func(childComplexity int) int
-		ID         func(childComplexity int) int
-		Name       func(childComplexity int) int
-	}
-
-	APIDefinition struct {
 		Fields     func(childComplexity int) int
+		ID         func(childComplexity int) int
 		Name       func(childComplexity int) int
 		Operations func(childComplexity int) int
 	}
 
 	Auth struct {
-		APIID              func(childComplexity int) int
-		AuthenticationType func(childComplexity int) int
-		ID                 func(childComplexity int) int
-		ReadPolicy         func(childComplexity int) int
-		WritePolicy        func(childComplexity int) int
+		APIID       func(childComplexity int) int
+		ReadPolicy  func(childComplexity int) int
+		WritePolicy func(childComplexity int) int
 	}
 
 	AuthPolicy struct {
@@ -136,6 +129,7 @@ type ComplexityRoot struct {
 	}
 
 	OperationDefinition struct {
+		APIID  func(childComplexity int) int
 		Create func(childComplexity int) int
 		List   func(childComplexity int) int
 		Read   func(childComplexity int) int
@@ -205,19 +199,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	_ = ec
 	switch typeName + "." + field {
 
-	case "API.definition":
-		if e.complexity.API.Definition == nil {
-			break
-		}
-
-		return e.complexity.API.Definition(childComplexity), true
-
 	case "API.deploys":
 		if e.complexity.API.Deploys == nil {
 			break
 		}
 
 		return e.complexity.API.Deploys(childComplexity), true
+
+	case "API.fields":
+		if e.complexity.API.Fields == nil {
+			break
+		}
+
+		return e.complexity.API.Fields(childComplexity), true
 
 	case "API.id":
 		if e.complexity.API.ID == nil {
@@ -233,26 +227,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.API.Name(childComplexity), true
 
-	case "APIDefinition.fields":
-		if e.complexity.APIDefinition.Fields == nil {
+	case "API.operations":
+		if e.complexity.API.Operations == nil {
 			break
 		}
 
-		return e.complexity.APIDefinition.Fields(childComplexity), true
-
-	case "APIDefinition.name":
-		if e.complexity.APIDefinition.Name == nil {
-			break
-		}
-
-		return e.complexity.APIDefinition.Name(childComplexity), true
-
-	case "APIDefinition.operations":
-		if e.complexity.APIDefinition.Operations == nil {
-			break
-		}
-
-		return e.complexity.APIDefinition.Operations(childComplexity), true
+		return e.complexity.API.Operations(childComplexity), true
 
 	case "Auth.apiID":
 		if e.complexity.Auth.APIID == nil {
@@ -260,20 +240,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Auth.APIID(childComplexity), true
-
-	case "Auth.authenticationType":
-		if e.complexity.Auth.AuthenticationType == nil {
-			break
-		}
-
-		return e.complexity.Auth.AuthenticationType(childComplexity), true
-
-	case "Auth.id":
-		if e.complexity.Auth.ID == nil {
-			break
-		}
-
-		return e.complexity.Auth.ID(childComplexity), true
 
 	case "Auth.readPolicy":
 		if e.complexity.Auth.ReadPolicy == nil {
@@ -604,6 +570,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.UpdateAPI(childComplexity, args["input"].(model.UpdateAPIInput)), true
 
+	case "OperationDefinition.apiID":
+		if e.complexity.OperationDefinition.APIID == nil {
+			break
+		}
+
+		return e.complexity.OperationDefinition.APIID(childComplexity), true
+
 	case "OperationDefinition.create":
 		if e.complexity.OperationDefinition.Create == nil {
 			break
@@ -796,43 +769,7 @@ var sources = []*ast.Source{
 	&ast.Source{Name: "graph/schema/api.graphql", Input: `type API {
   id: ID!
   name: String!
-  definition: APIDefinition!
-}
-
-type APIDefinition {
-  name: String!
   fields: [FieldDefinition!]!
-  operations: OperationDefinition!
-}
-
-type OperationDefinition {
-  create: CreateDefinition!
-  read: ReadDefinition!
-  list: ListDefinition!
-}
-
-type CreateDefinition {
-  enabled: Boolean!
-}
-
-type ReadDefinition {
-  enabled: Boolean!
-}
-
-type ListDefinition {
-  enabled: Boolean!
-  sort: [SortDefinition!]!
-  filter: [String!]!
-}
-
-type SortDefinition {
-  field: String!
-  order: SortOrder!
-}
-
-enum SortOrder {
-  ASC
-  DESC
 }
 
 type FieldDefinition {
@@ -850,6 +787,7 @@ enum Type {
   INT
   BOOLEAN
   STRING
+  LIST
 }
 
 type Constraint {
@@ -872,15 +810,38 @@ type Query {
   apis: [API!]!
 }
 
+input FieldDefinitionInput {
+  name: String!
+  type: Type!
+  customType: String
+  optional: Boolean
+  list: Boolean
+  constraints: ConstraintInput
+  customLogicPopulated: Boolean
+}
+
+input ConstraintInput {
+  # type Int
+  minInt: Int
+  maxInt: Int
+  # type Float
+  minFloat: Float
+  maxFloat: Float
+  # type String
+  regex: String
+  # type String, List
+  minLength: Int
+  maxLength: Int
+}
+
 input DefineAPIInput {
-  # TODO(gracew): in the future may want to send an already parsed representation?
-  rawDefinition: String!
+  name: String!
+  fields: [FieldDefinitionInput!]!
 }
 
 input UpdateAPIInput {
   id: ID!
-  # TODO(gracew): in the future may want to send an already parsed representation?
-  rawDefinition: String!
+  fields: [FieldDefinitionInput!]
 }
 
 type Mutation {
@@ -890,15 +851,9 @@ type Mutation {
 }
 `, BuiltIn: false},
 	&ast.Source{Name: "graph/schema/auth.graphql", Input: `type Auth {
-  id: ID!
   apiID: ID!
-  authenticationType: AuthenticationType!
   readPolicy: AuthPolicy!
   writePolicy: AuthPolicy!
-}
-
-enum AuthenticationType {
-  BUILT_IN
 }
 
 type AuthPolicy {
@@ -920,7 +875,6 @@ extend type Query {
 
 input AuthAPIInput {
   apiID: ID!
-  authenticationType: AuthenticationType!
   readPolicy: AuthPolicyInput!
   writePolicy: AuthPolicyInput!
 }
@@ -1025,6 +979,70 @@ input DeployAPIInput {
 
 extend type Mutation {
   deployAPI(input: DeployAPIInput!): Deploy!
+}
+`, BuiltIn: false},
+	&ast.Source{Name: "graph/schema/operations.graphql", Input: `type OperationDefinition {
+  apiID: ID!
+  create: CreateDefinition!
+  read: ReadDefinition!
+  list: ListDefinition!
+}
+
+type CreateDefinition {
+  enabled: Boolean!
+}
+
+type ReadDefinition {
+  enabled: Boolean!
+}
+
+type ListDefinition {
+  enabled: Boolean!
+  sort: [SortDefinition!]!
+  filter: [String!]!
+}
+
+type SortDefinition {
+  field: String!
+  order: SortOrder!
+}
+
+enum SortOrder {
+  ASC
+  DESC
+}
+
+extend type API {
+  operations: OperationDefinition!
+}
+
+extend input UpdateAPIInput {
+  operations: OperationDefinitionInput
+}
+
+input OperationDefinitionInput {
+  create: CreateDefinitionInput!
+  read: ReadDefinitionInput!
+  list: ListDefinitionInput!
+}
+
+input CreateDefinitionInput {
+  enabled: Boolean!
+}
+
+input ReadDefinitionInput {
+  enabled: Boolean!
+}
+
+input ListDefinitionInput {
+  enabled: Boolean!
+  sort: [SortDefinitionInput!]!
+  filter: [String!]!
+}
+
+input SortDefinitionInput {
+  field: String!
+  order: SortOrder!
 }
 `, BuiltIn: false},
 	&ast.Source{Name: "graph/schema/token.graphql", Input: `type TestTokenResponse {
@@ -1328,7 +1346,7 @@ func (ec *executionContext) _API_name(ctx context.Context, field graphql.Collect
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _API_definition(ctx context.Context, field graphql.CollectedField, obj *model.API) (ret graphql.Marshaler) {
+func (ec *executionContext) _API_fields(ctx context.Context, field graphql.CollectedField, obj *model.API) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1345,7 +1363,7 @@ func (ec *executionContext) _API_definition(ctx context.Context, field graphql.C
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Definition, nil
+		return obj.Fields, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1357,9 +1375,9 @@ func (ec *executionContext) _API_definition(ctx context.Context, field graphql.C
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.APIDefinition)
+	res := resTmp.([]*model.FieldDefinition)
 	fc.Result = res
-	return ec.marshalNAPIDefinition2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐAPIDefinition(ctx, field.Selections, res)
+	return ec.marshalNFieldDefinition2ᚕᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐFieldDefinitionᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _API_deploys(ctx context.Context, field graphql.CollectedField, obj *model.API) (ret graphql.Marshaler) {
@@ -1396,7 +1414,7 @@ func (ec *executionContext) _API_deploys(ctx context.Context, field graphql.Coll
 	return ec.marshalNDeploy2ᚕᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐDeployᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _APIDefinition_name(ctx context.Context, field graphql.CollectedField, obj *model.APIDefinition) (ret graphql.Marshaler) {
+func (ec *executionContext) _API_operations(ctx context.Context, field graphql.CollectedField, obj *model.API) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1404,75 +1422,7 @@ func (ec *executionContext) _APIDefinition_name(ctx context.Context, field graph
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "APIDefinition",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Name, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _APIDefinition_fields(ctx context.Context, field graphql.CollectedField, obj *model.APIDefinition) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "APIDefinition",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Fields, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]*model.FieldDefinition)
-	fc.Result = res
-	return ec.marshalNFieldDefinition2ᚕᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐFieldDefinitionᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _APIDefinition_operations(ctx context.Context, field graphql.CollectedField, obj *model.APIDefinition) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "APIDefinition",
+		Object:   "API",
 		Field:    field,
 		Args:     nil,
 		IsMethod: false,
@@ -1496,40 +1446,6 @@ func (ec *executionContext) _APIDefinition_operations(ctx context.Context, field
 	res := resTmp.(*model.OperationDefinition)
 	fc.Result = res
 	return ec.marshalNOperationDefinition2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐOperationDefinition(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Auth_id(ctx context.Context, field graphql.CollectedField, obj *model.Auth) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Auth",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Auth_apiID(ctx context.Context, field graphql.CollectedField, obj *model.Auth) (ret graphql.Marshaler) {
@@ -1564,40 +1480,6 @@ func (ec *executionContext) _Auth_apiID(ctx context.Context, field graphql.Colle
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNID2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Auth_authenticationType(ctx context.Context, field graphql.CollectedField, obj *model.Auth) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Auth",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.AuthenticationType, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(model.AuthenticationType)
-	fc.Result = res
-	return ec.marshalNAuthenticationType2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐAuthenticationType(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Auth_readPolicy(ctx context.Context, field graphql.CollectedField, obj *model.Auth) (ret graphql.Marshaler) {
@@ -3027,6 +2909,40 @@ func (ec *executionContext) _Mutation_addTestToken(ctx context.Context, field gr
 	res := resTmp.(*model.TestToken)
 	fc.Result = res
 	return ec.marshalNTestToken2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐTestToken(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _OperationDefinition_apiID(ctx context.Context, field graphql.CollectedField, obj *model.OperationDefinition) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "OperationDefinition",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.APIID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _OperationDefinition_create(ctx context.Context, field graphql.CollectedField, obj *model.OperationDefinition) (ret graphql.Marshaler) {
@@ -4697,12 +4613,6 @@ func (ec *executionContext) unmarshalInputAuthAPIInput(ctx context.Context, obj 
 			if err != nil {
 				return it, err
 			}
-		case "authenticationType":
-			var err error
-			it.AuthenticationType, err = ec.unmarshalNAuthenticationType2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐAuthenticationType(ctx, v)
-			if err != nil {
-				return it, err
-			}
 		case "readPolicy":
 			var err error
 			it.ReadPolicy, err = ec.unmarshalNAuthPolicyInput2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐAuthPolicyInput(ctx, v)
@@ -4751,15 +4661,93 @@ func (ec *executionContext) unmarshalInputAuthPolicyInput(ctx context.Context, o
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputConstraintInput(ctx context.Context, obj interface{}) (model.ConstraintInput, error) {
+	var it model.ConstraintInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "minInt":
+			var err error
+			it.MinInt, err = ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "maxInt":
+			var err error
+			it.MaxInt, err = ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "minFloat":
+			var err error
+			it.MinFloat, err = ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "maxFloat":
+			var err error
+			it.MaxFloat, err = ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "regex":
+			var err error
+			it.Regex, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "minLength":
+			var err error
+			it.MinLength, err = ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "maxLength":
+			var err error
+			it.MaxLength, err = ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputCreateDefinitionInput(ctx context.Context, obj interface{}) (model.CreateDefinitionInput, error) {
+	var it model.CreateDefinitionInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "enabled":
+			var err error
+			it.Enabled, err = ec.unmarshalNBoolean2bool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputDefineAPIInput(ctx context.Context, obj interface{}) (model.DefineAPIInput, error) {
 	var it model.DefineAPIInput
 	var asMap = obj.(map[string]interface{})
 
 	for k, v := range asMap {
 		switch k {
-		case "rawDefinition":
+		case "name":
 			var err error
-			it.RawDefinition, err = ec.unmarshalNString2string(ctx, v)
+			it.Name, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "fields":
+			var err error
+			it.Fields, err = ec.unmarshalNFieldDefinitionInput2ᚕᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐFieldDefinitionInputᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4790,6 +4778,138 @@ func (ec *executionContext) unmarshalInputDeployAPIInput(ctx context.Context, ob
 		case "env":
 			var err error
 			it.Env, err = ec.unmarshalNEnvironment2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐEnvironment(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputFieldDefinitionInput(ctx context.Context, obj interface{}) (model.FieldDefinitionInput, error) {
+	var it model.FieldDefinitionInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "name":
+			var err error
+			it.Name, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "type":
+			var err error
+			it.Type, err = ec.unmarshalNType2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐType(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "customType":
+			var err error
+			it.CustomType, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "optional":
+			var err error
+			it.Optional, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "list":
+			var err error
+			it.List, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "constraints":
+			var err error
+			it.Constraints, err = ec.unmarshalOConstraintInput2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐConstraintInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "customLogicPopulated":
+			var err error
+			it.CustomLogicPopulated, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputListDefinitionInput(ctx context.Context, obj interface{}) (model.ListDefinitionInput, error) {
+	var it model.ListDefinitionInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "enabled":
+			var err error
+			it.Enabled, err = ec.unmarshalNBoolean2bool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "sort":
+			var err error
+			it.Sort, err = ec.unmarshalNSortDefinitionInput2ᚕᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐSortDefinitionInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "filter":
+			var err error
+			it.Filter, err = ec.unmarshalNString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputOperationDefinitionInput(ctx context.Context, obj interface{}) (model.OperationDefinitionInput, error) {
+	var it model.OperationDefinitionInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "create":
+			var err error
+			it.Create, err = ec.unmarshalNCreateDefinitionInput2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐCreateDefinitionInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "read":
+			var err error
+			it.Read, err = ec.unmarshalNReadDefinitionInput2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐReadDefinitionInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "list":
+			var err error
+			it.List, err = ec.unmarshalNListDefinitionInput2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐListDefinitionInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputReadDefinitionInput(ctx context.Context, obj interface{}) (model.ReadDefinitionInput, error) {
+	var it model.ReadDefinitionInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "enabled":
+			var err error
+			it.Enabled, err = ec.unmarshalNBoolean2bool(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4841,6 +4961,30 @@ func (ec *executionContext) unmarshalInputSaveCustomLogicInput(ctx context.Conte
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputSortDefinitionInput(ctx context.Context, obj interface{}) (model.SortDefinitionInput, error) {
+	var it model.SortDefinitionInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "field":
+			var err error
+			it.Field, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "order":
+			var err error
+			it.Order, err = ec.unmarshalNSortOrder2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐSortOrder(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputTestTokenInput(ctx context.Context, obj interface{}) (model.TestTokenInput, error) {
 	var it model.TestTokenInput
 	var asMap = obj.(map[string]interface{})
@@ -4877,9 +5021,15 @@ func (ec *executionContext) unmarshalInputUpdateAPIInput(ctx context.Context, ob
 			if err != nil {
 				return it, err
 			}
-		case "rawDefinition":
+		case "fields":
 			var err error
-			it.RawDefinition, err = ec.unmarshalNString2string(ctx, v)
+			it.Fields, err = ec.unmarshalOFieldDefinitionInput2ᚕᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐFieldDefinitionInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "operations":
+			var err error
+			it.Operations, err = ec.unmarshalOOperationDefinitionInput2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐOperationDefinitionInput(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4918,8 +5068,8 @@ func (ec *executionContext) _API(ctx context.Context, sel ast.SelectionSet, obj 
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
-		case "definition":
-			out.Values[i] = ec._API_definition(ctx, field, obj)
+		case "fields":
+			out.Values[i] = ec._API_fields(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
@@ -4937,42 +5087,10 @@ func (ec *executionContext) _API(ctx context.Context, sel ast.SelectionSet, obj 
 				}
 				return res
 			})
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
-var aPIDefinitionImplementors = []string{"APIDefinition"}
-
-func (ec *executionContext) _APIDefinition(ctx context.Context, sel ast.SelectionSet, obj *model.APIDefinition) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, aPIDefinitionImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("APIDefinition")
-		case "name":
-			out.Values[i] = ec._APIDefinition_name(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "fields":
-			out.Values[i] = ec._APIDefinition_fields(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "operations":
-			out.Values[i] = ec._APIDefinition_operations(ctx, field, obj)
+			out.Values[i] = ec._API_operations(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -4996,18 +5114,8 @@ func (ec *executionContext) _Auth(ctx context.Context, sel ast.SelectionSet, obj
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Auth")
-		case "id":
-			out.Values[i] = ec._Auth_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "apiID":
 			out.Values[i] = ec._Auth_apiID(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "authenticationType":
-			out.Values[i] = ec._Auth_authenticationType(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -5419,6 +5527,11 @@ func (ec *executionContext) _OperationDefinition(ctx context.Context, sel ast.Se
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("OperationDefinition")
+		case "apiID":
+			out.Values[i] = ec._OperationDefinition_apiID(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "create":
 			out.Values[i] = ec._OperationDefinition_create(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -5967,20 +6080,6 @@ func (ec *executionContext) marshalNAPI2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgrap
 	return ec._API(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNAPIDefinition2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐAPIDefinition(ctx context.Context, sel ast.SelectionSet, v model.APIDefinition) graphql.Marshaler {
-	return ec._APIDefinition(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNAPIDefinition2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐAPIDefinition(ctx context.Context, sel ast.SelectionSet, v *model.APIDefinition) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._APIDefinition(ctx, sel, v)
-}
-
 func (ec *executionContext) unmarshalNAuthAPIInput2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐAuthAPIInput(ctx context.Context, v interface{}) (model.AuthAPIInput, error) {
 	return ec.unmarshalInputAuthAPIInput(ctx, v)
 }
@@ -6020,15 +6119,6 @@ func (ec *executionContext) marshalNAuthPolicyType2githubᚗcomᚋgracewᚋwidge
 	return v
 }
 
-func (ec *executionContext) unmarshalNAuthenticationType2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐAuthenticationType(ctx context.Context, v interface{}) (model.AuthenticationType, error) {
-	var res model.AuthenticationType
-	return res, res.UnmarshalGQL(v)
-}
-
-func (ec *executionContext) marshalNAuthenticationType2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐAuthenticationType(ctx context.Context, sel ast.SelectionSet, v model.AuthenticationType) graphql.Marshaler {
-	return v
-}
-
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
 	return graphql.UnmarshalBoolean(v)
 }
@@ -6055,6 +6145,18 @@ func (ec *executionContext) marshalNCreateDefinition2ᚖgithubᚗcomᚋgracewᚋ
 		return graphql.Null
 	}
 	return ec._CreateDefinition(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNCreateDefinitionInput2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐCreateDefinitionInput(ctx context.Context, v interface{}) (model.CreateDefinitionInput, error) {
+	return ec.unmarshalInputCreateDefinitionInput(ctx, v)
+}
+
+func (ec *executionContext) unmarshalNCreateDefinitionInput2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐCreateDefinitionInput(ctx context.Context, v interface{}) (*model.CreateDefinitionInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalNCreateDefinitionInput2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐCreateDefinitionInput(ctx, v)
+	return &res, err
 }
 
 func (ec *executionContext) marshalNCustomLogic2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐCustomLogic(ctx context.Context, sel ast.SelectionSet, v model.CustomLogic) graphql.Marshaler {
@@ -6310,6 +6412,38 @@ func (ec *executionContext) marshalNFieldDefinition2ᚖgithubᚗcomᚋgracewᚋw
 	return ec._FieldDefinition(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNFieldDefinitionInput2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐFieldDefinitionInput(ctx context.Context, v interface{}) (model.FieldDefinitionInput, error) {
+	return ec.unmarshalInputFieldDefinitionInput(ctx, v)
+}
+
+func (ec *executionContext) unmarshalNFieldDefinitionInput2ᚕᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐFieldDefinitionInputᚄ(ctx context.Context, v interface{}) ([]*model.FieldDefinitionInput, error) {
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]*model.FieldDefinitionInput, len(vSlice))
+	for i := range vSlice {
+		res[i], err = ec.unmarshalNFieldDefinitionInput2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐFieldDefinitionInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) unmarshalNFieldDefinitionInput2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐFieldDefinitionInput(ctx context.Context, v interface{}) (*model.FieldDefinitionInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalNFieldDefinitionInput2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐFieldDefinitionInput(ctx, v)
+	return &res, err
+}
+
 func (ec *executionContext) unmarshalNID2string(ctx context.Context, v interface{}) (string, error) {
 	return graphql.UnmarshalID(v)
 }
@@ -6347,6 +6481,18 @@ func (ec *executionContext) marshalNListDefinition2ᚖgithubᚗcomᚋgracewᚋwi
 	return ec._ListDefinition(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNListDefinitionInput2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐListDefinitionInput(ctx context.Context, v interface{}) (model.ListDefinitionInput, error) {
+	return ec.unmarshalInputListDefinitionInput(ctx, v)
+}
+
+func (ec *executionContext) unmarshalNListDefinitionInput2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐListDefinitionInput(ctx context.Context, v interface{}) (*model.ListDefinitionInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalNListDefinitionInput2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐListDefinitionInput(ctx, v)
+	return &res, err
+}
+
 func (ec *executionContext) marshalNOperationDefinition2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐOperationDefinition(ctx context.Context, sel ast.SelectionSet, v model.OperationDefinition) graphql.Marshaler {
 	return ec._OperationDefinition(ctx, sel, &v)
 }
@@ -6382,6 +6528,18 @@ func (ec *executionContext) marshalNReadDefinition2ᚖgithubᚗcomᚋgracewᚋwi
 		return graphql.Null
 	}
 	return ec._ReadDefinition(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNReadDefinitionInput2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐReadDefinitionInput(ctx context.Context, v interface{}) (model.ReadDefinitionInput, error) {
+	return ec.unmarshalInputReadDefinitionInput(ctx, v)
+}
+
+func (ec *executionContext) unmarshalNReadDefinitionInput2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐReadDefinitionInput(ctx context.Context, v interface{}) (*model.ReadDefinitionInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalNReadDefinitionInput2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐReadDefinitionInput(ctx, v)
+	return &res, err
 }
 
 func (ec *executionContext) unmarshalNSaveCustomLogicInput2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐSaveCustomLogicInput(ctx context.Context, v interface{}) (model.SaveCustomLogicInput, error) {
@@ -6437,6 +6595,38 @@ func (ec *executionContext) marshalNSortDefinition2ᚖgithubᚗcomᚋgracewᚋwi
 		return graphql.Null
 	}
 	return ec._SortDefinition(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNSortDefinitionInput2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐSortDefinitionInput(ctx context.Context, v interface{}) (model.SortDefinitionInput, error) {
+	return ec.unmarshalInputSortDefinitionInput(ctx, v)
+}
+
+func (ec *executionContext) unmarshalNSortDefinitionInput2ᚕᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐSortDefinitionInputᚄ(ctx context.Context, v interface{}) ([]*model.SortDefinitionInput, error) {
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]*model.SortDefinitionInput, len(vSlice))
+	for i := range vSlice {
+		res[i], err = ec.unmarshalNSortDefinitionInput2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐSortDefinitionInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) unmarshalNSortDefinitionInput2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐSortDefinitionInput(ctx context.Context, v interface{}) (*model.SortDefinitionInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalNSortDefinitionInput2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐSortDefinitionInput(ctx, v)
+	return &res, err
 }
 
 func (ec *executionContext) unmarshalNSortOrder2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐSortOrder(ctx context.Context, v interface{}) (model.SortOrder, error) {
@@ -6855,6 +7045,38 @@ func (ec *executionContext) marshalOConstraint2ᚖgithubᚗcomᚋgracewᚋwidget
 	return ec._Constraint(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalOConstraintInput2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐConstraintInput(ctx context.Context, v interface{}) (model.ConstraintInput, error) {
+	return ec.unmarshalInputConstraintInput(ctx, v)
+}
+
+func (ec *executionContext) unmarshalOConstraintInput2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐConstraintInput(ctx context.Context, v interface{}) (*model.ConstraintInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalOConstraintInput2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐConstraintInput(ctx, v)
+	return &res, err
+}
+
+func (ec *executionContext) unmarshalOFieldDefinitionInput2ᚕᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐFieldDefinitionInputᚄ(ctx context.Context, v interface{}) ([]*model.FieldDefinitionInput, error) {
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]*model.FieldDefinitionInput, len(vSlice))
+	for i := range vSlice {
+		res[i], err = ec.unmarshalNFieldDefinitionInput2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐFieldDefinitionInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
 func (ec *executionContext) unmarshalOFloat2float64(ctx context.Context, v interface{}) (float64, error) {
 	return graphql.UnmarshalFloat(v)
 }
@@ -6899,6 +7121,18 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 		return graphql.Null
 	}
 	return ec.marshalOInt2int(ctx, sel, *v)
+}
+
+func (ec *executionContext) unmarshalOOperationDefinitionInput2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐOperationDefinitionInput(ctx context.Context, v interface{}) (model.OperationDefinitionInput, error) {
+	return ec.unmarshalInputOperationDefinitionInput(ctx, v)
+}
+
+func (ec *executionContext) unmarshalOOperationDefinitionInput2ᚖgithubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐOperationDefinitionInput(ctx context.Context, v interface{}) (*model.OperationDefinitionInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalOOperationDefinitionInput2githubᚗcomᚋgracewᚋwidgetᚋgraphᚋmodelᚐOperationDefinitionInput(ctx, v)
+	return &res, err
 }
 
 func (ec *executionContext) unmarshalOString2string(ctx context.Context, v interface{}) (string, error) {

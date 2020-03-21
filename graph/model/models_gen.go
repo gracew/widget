@@ -8,25 +8,10 @@ import (
 	"strconv"
 )
 
-type APIDefinition struct {
-	Name       string               `json:"name"`
-	Fields     []*FieldDefinition   `json:"fields"`
-	Operations *OperationDefinition `json:"operations"`
-}
-
-type Auth struct {
-	ID                 string             `json:"id"`
-	APIID              string             `json:"apiID"`
-	AuthenticationType AuthenticationType `json:"authenticationType"`
-	ReadPolicy         *AuthPolicy        `json:"readPolicy"`
-	WritePolicy        *AuthPolicy        `json:"writePolicy"`
-}
-
 type AuthAPIInput struct {
-	APIID              string             `json:"apiID"`
-	AuthenticationType AuthenticationType `json:"authenticationType"`
-	ReadPolicy         *AuthPolicyInput   `json:"readPolicy"`
-	WritePolicy        *AuthPolicyInput   `json:"writePolicy"`
+	APIID       string           `json:"apiID"`
+	ReadPolicy  *AuthPolicyInput `json:"readPolicy"`
+	WritePolicy *AuthPolicyInput `json:"writePolicy"`
 }
 
 type AuthPolicy struct {
@@ -51,12 +36,27 @@ type Constraint struct {
 	MaxLength *int     `json:"maxLength"`
 }
 
+type ConstraintInput struct {
+	MinInt    *int     `json:"minInt"`
+	MaxInt    *int     `json:"maxInt"`
+	MinFloat  *float64 `json:"minFloat"`
+	MaxFloat  *float64 `json:"maxFloat"`
+	Regex     *string  `json:"regex"`
+	MinLength *int     `json:"minLength"`
+	MaxLength *int     `json:"maxLength"`
+}
+
 type CreateDefinition struct {
 	Enabled bool `json:"enabled"`
 }
 
+type CreateDefinitionInput struct {
+	Enabled bool `json:"enabled"`
+}
+
 type DefineAPIInput struct {
-	RawDefinition string `json:"rawDefinition"`
+	Name   string                  `json:"name"`
+	Fields []*FieldDefinitionInput `json:"fields"`
 }
 
 type Deploy struct {
@@ -85,19 +85,39 @@ type FieldDefinition struct {
 	CustomLogicPopulated *bool       `json:"customLogicPopulated"`
 }
 
+type FieldDefinitionInput struct {
+	Name                 string           `json:"name"`
+	Type                 Type             `json:"type"`
+	CustomType           *string          `json:"customType"`
+	Optional             *bool            `json:"optional"`
+	List                 *bool            `json:"list"`
+	Constraints          *ConstraintInput `json:"constraints"`
+	CustomLogicPopulated *bool            `json:"customLogicPopulated"`
+}
+
 type ListDefinition struct {
 	Enabled bool              `json:"enabled"`
 	Sort    []*SortDefinition `json:"sort"`
 	Filter  []string          `json:"filter"`
 }
 
-type OperationDefinition struct {
-	Create *CreateDefinition `json:"create"`
-	Read   *ReadDefinition   `json:"read"`
-	List   *ListDefinition   `json:"list"`
+type ListDefinitionInput struct {
+	Enabled bool                   `json:"enabled"`
+	Sort    []*SortDefinitionInput `json:"sort"`
+	Filter  []string               `json:"filter"`
+}
+
+type OperationDefinitionInput struct {
+	Create *CreateDefinitionInput `json:"create"`
+	Read   *ReadDefinitionInput   `json:"read"`
+	List   *ListDefinitionInput   `json:"list"`
 }
 
 type ReadDefinition struct {
+	Enabled bool `json:"enabled"`
+}
+
+type ReadDefinitionInput struct {
 	Enabled bool `json:"enabled"`
 }
 
@@ -110,6 +130,11 @@ type SaveCustomLogicInput struct {
 }
 
 type SortDefinition struct {
+	Field string    `json:"field"`
+	Order SortOrder `json:"order"`
+}
+
+type SortDefinitionInput struct {
 	Field string    `json:"field"`
 	Order SortOrder `json:"order"`
 }
@@ -129,8 +154,9 @@ type TestTokenResponse struct {
 }
 
 type UpdateAPIInput struct {
-	ID            string `json:"id"`
-	RawDefinition string `json:"rawDefinition"`
+	ID         string                    `json:"id"`
+	Fields     []*FieldDefinitionInput   `json:"fields"`
+	Operations *OperationDefinitionInput `json:"operations"`
 }
 
 type AuthPolicyType string
@@ -173,45 +199,6 @@ func (e *AuthPolicyType) UnmarshalGQL(v interface{}) error {
 }
 
 func (e AuthPolicyType) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
-}
-
-type AuthenticationType string
-
-const (
-	AuthenticationTypeBuiltIn AuthenticationType = "BUILT_IN"
-)
-
-var AllAuthenticationType = []AuthenticationType{
-	AuthenticationTypeBuiltIn,
-}
-
-func (e AuthenticationType) IsValid() bool {
-	switch e {
-	case AuthenticationTypeBuiltIn:
-		return true
-	}
-	return false
-}
-
-func (e AuthenticationType) String() string {
-	return string(e)
-}
-
-func (e *AuthenticationType) UnmarshalGQL(v interface{}) error {
-	str, ok := v.(string)
-	if !ok {
-		return fmt.Errorf("enums must be strings")
-	}
-
-	*e = AuthenticationType(str)
-	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid AuthenticationType", str)
-	}
-	return nil
-}
-
-func (e AuthenticationType) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
@@ -480,6 +467,7 @@ const (
 	TypeInt     Type = "INT"
 	TypeBoolean Type = "BOOLEAN"
 	TypeString  Type = "STRING"
+	TypeList    Type = "LIST"
 )
 
 var AllType = []Type{
@@ -487,11 +475,12 @@ var AllType = []Type{
 	TypeInt,
 	TypeBoolean,
 	TypeString,
+	TypeList,
 }
 
 func (e Type) IsValid() bool {
 	switch e {
-	case TypeFloat, TypeInt, TypeBoolean, TypeString:
+	case TypeFloat, TypeInt, TypeBoolean, TypeString, TypeList:
 		return true
 	}
 	return false

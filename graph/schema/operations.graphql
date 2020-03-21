@@ -1,0 +1,63 @@
+type OperationDefinition {
+  apiID: ID!
+  create: CreateDefinition!
+  read: ReadDefinition!
+  list: ListDefinition!
+}
+
+type CreateDefinition {
+  enabled: Boolean!
+}
+
+type ReadDefinition {
+  enabled: Boolean!
+}
+
+type ListDefinition {
+  enabled: Boolean!
+  sort: [SortDefinition!]!
+  filter: [String!]!
+}
+
+type SortDefinition {
+  field: String!
+  order: SortOrder!
+}
+
+enum SortOrder {
+  ASC
+  DESC
+}
+
+extend type API {
+  operations: OperationDefinition!
+}
+
+extend input UpdateAPIInput {
+  operations: OperationDefinitionInput
+}
+
+input OperationDefinitionInput {
+  create: CreateDefinitionInput!
+  read: ReadDefinitionInput!
+  list: ListDefinitionInput!
+}
+
+input CreateDefinitionInput {
+  enabled: Boolean!
+}
+
+input ReadDefinitionInput {
+  enabled: Boolean!
+}
+
+input ListDefinitionInput {
+  enabled: Boolean!
+  sort: [SortDefinitionInput!]!
+  filter: [String!]!
+}
+
+input SortDefinitionInput {
+  field: String!
+  order: SortOrder!
+}

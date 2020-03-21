@@ -62,7 +62,7 @@ func (l Launcher) generateCode() (string, error) {
 		jen.Id("ID").String().Tag(map[string]string{"json": "id", "sql": "type:uuid,default:gen_random_uuid()"}),
 		jen.Id("CreatedBy").String().Tag(map[string]string{"json": "createdBy"}),
 	}
-	for _, field := range l.API.Definition.Fields {
+	for _, field := range l.API.Fields {
 		jenField := jen.Id(strings.Title(field.Name))
 		switch field.Type {
 			case model.TypeBoolean:
