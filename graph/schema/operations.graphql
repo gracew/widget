@@ -33,8 +33,11 @@ extend type API {
   operations: OperationDefinition!
 }
 
-input SaveOperationsInput {
-  apiID: ID!
+extend input UpdateOperationsInput {
+  operations: OperationDefinitionInput
+}
+
+input OperationDefinitionInput {
   create: CreateDefinitionInput!
   read: ReadDefinitionInput!
   list: ListDefinitionInput!
@@ -57,8 +60,4 @@ input ListDefinitionInput {
 input SortDefinitionInput {
   field: String!
   order: SortOrder!
-}
-
-extend type Mutation {
-  saveOperations(input: SaveOperationsInput!): Boolean!
 }

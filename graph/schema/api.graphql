@@ -73,7 +73,7 @@ input DefineAPIInput {
 
 input UpdateAPIInput {
   id: ID!
-  fields: [FieldDefinitionInput!]!
+  fields: [FieldDefinitionInput!]
 }
 
 type Mutation {

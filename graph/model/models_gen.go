@@ -107,6 +107,12 @@ type ListDefinitionInput struct {
 	Filter  []string               `json:"filter"`
 }
 
+type OperationDefinitionInput struct {
+	Create *CreateDefinitionInput `json:"create"`
+	Read   *ReadDefinitionInput   `json:"read"`
+	List   *ListDefinitionInput   `json:"list"`
+}
+
 type ReadDefinition struct {
 	Enabled bool `json:"enabled"`
 }
@@ -121,13 +127,6 @@ type SaveCustomLogicInput struct {
 	Language      Language      `json:"language"`
 	Before        *string       `json:"before"`
 	After         *string       `json:"after"`
-}
-
-type SaveOperationsInput struct {
-	APIID  string                 `json:"apiID"`
-	Create *CreateDefinitionInput `json:"create"`
-	Read   *ReadDefinitionInput   `json:"read"`
-	List   *ListDefinitionInput   `json:"list"`
 }
 
 type SortDefinition struct {
@@ -157,6 +156,10 @@ type TestTokenResponse struct {
 type UpdateAPIInput struct {
 	ID     string                  `json:"id"`
 	Fields []*FieldDefinitionInput `json:"fields"`
+}
+
+type UpdateOperationsInput struct {
+	Operations *OperationDefinitionInput `json:"operations"`
 }
 
 type AuthPolicyType string
