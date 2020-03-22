@@ -48,8 +48,15 @@ func (s Store) UpdateAPI(input model.UpdateAPIInput) (*model.API, error) {
 		return nil, errors.Wrapf(err, "could not unmarshal bytes as json");
 	}
 
+	m := s.DB.Model(&api)
+	if input.Fields != nil {
+		m.Column("fields")
+	}
+	if input.Operations != nil {
+		m.Column("operations")
+	}
 	// TODO(gracew): figure out better way to not clobber name
-	_, err = s.DB.Model(&api).Column("fields").Column("operations").WherePK().Update()
+	_, err = m.WherePK().Update()
 	if err != nil {
 		return nil, err
 	}
@@ -134,6 +141,22 @@ func (s Store) CustomLogic(apiID string) ([]*model.CustomLogic, error) {
 	}
 
 	return res, nil
+}
+
+func (s Store) NewDeploy(deploy *model.Deploy) error {
+	err := s.DB.Insert(deploy)
+	if err != nil {
+		return errors.Wrapf(err, "could not save deploy metadata for api %s", deploy.APIID)
+	}
+	return nil
+}
+
+func (s Store) DeleteDeploy(id string) error {
+	err := s.DB.Delete(&model.Deploy{ID: id})
+	if err != nil {
+		return errors.Wrapf(err, "could not delete deploy %s", id)
+	}
+	return nil
 }
 
 func (s Store) Deploys(apiID string) ([]*model.Deploy, error) {

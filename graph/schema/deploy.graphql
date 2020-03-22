@@ -50,4 +50,5 @@ input DeployAPIInput {
 
 extend type Mutation {
   deployAPI(input: DeployAPIInput!): Deploy!
+  deleteDeploy(id: ID!): Boolean!
 }

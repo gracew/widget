@@ -4,8 +4,8 @@ package graph
 
 import (
 	"context"
+	"os/exec"
 
-	"github.com/go-pg/pg"
 	"github.com/gracew/widget/grafana"
 	"github.com/gracew/widget/graph/model"
 	"github.com/gracew/widget/launch"
@@ -17,9 +17,6 @@ func (r *aPIResolver) Deploys(ctx context.Context, obj *model.API) ([]*model.Dep
 }
 
 func (r *mutationResolver) DeployAPI(ctx context.Context, input model.DeployAPIInput) (*model.Deploy, error) {
-	db := pg.Connect(&pg.Options{User: "postgres"})
-	defer db.Close()
-
 	// TODO(gracew): parallelize these db calls lol
 	api, err := r.Store.API(input.APIID)
 	if err != nil {
@@ -41,7 +38,7 @@ func (r *mutationResolver) DeployAPI(ctx context.Context, input model.DeployAPII
 		APIID: input.APIID,
 		Env:   input.Env,
 	}
-	err = db.Insert(deploy)
+	err = r.Store.NewDeploy(deploy)
 	if err != nil {
 		return nil, errors.Wrapf(err, "could not save deploy metadata for api %s", input.APIID)
 	}
@@ -72,6 +69,27 @@ func (r *mutationResolver) DeployAPI(ctx context.Context, input model.DeployAPII
 	}
 
 	return deploy, nil
+}
+
+func (r *mutationResolver) DeleteDeploy(ctx context.Context, id string) (bool, error) {
+	cmd := exec.Command("docker",
+		"rm",
+		"-f",
+		"custom-logic",
+		"widget-proxy",
+		"||",
+		"true",
+	)
+
+	// TODO(gracew): check err
+	cmd.Run()
+
+	err := r.Store.DeleteDeploy(id)
+	if err != nil {
+		return false, errors.Wrap(err, "failed to delete deploy metadata")
+	}
+
+	return true, nil
 }
 
 func (r *queryResolver) DeployStatus(ctx context.Context, deployID string) (*model.DeployStatusResponse, error) {
