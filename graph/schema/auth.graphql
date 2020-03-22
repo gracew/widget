@@ -2,6 +2,7 @@ type Auth {
   apiID: ID!
   readPolicy: AuthPolicy!
   writePolicy: AuthPolicy!
+  deletePolicy: AuthPolicy!
 }
 
 type AuthPolicy {
@@ -25,6 +26,7 @@ input AuthAPIInput {
   apiID: ID!
   readPolicy: AuthPolicyInput!
   writePolicy: AuthPolicyInput!
+  deletePolicy: AuthPolicyInput!
 }
 
 input AuthPolicyInput {

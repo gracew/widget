@@ -4,9 +4,15 @@ package graph
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/gracew/widget/graph/generated"
 	"github.com/gracew/widget/graph/model"
 )
+
+func (r *authResolver) DeletePolicy(ctx context.Context, obj *model.Auth) (*model.AuthPolicy, error) {
+	panic(fmt.Errorf("not implemented"))
+}
 
 func (r *mutationResolver) AuthAPI(ctx context.Context, input model.AuthAPIInput) (bool, error) {
 	err := r.Store.SaveAuth(input)
@@ -19,3 +25,7 @@ func (r *mutationResolver) AuthAPI(ctx context.Context, input model.AuthAPIInput
 func (r *queryResolver) Auth(ctx context.Context, apiID string) (*model.Auth, error) {
 	return r.Store.Auth(apiID)
 }
+
+func (r *Resolver) Auth() generated.AuthResolver { return &authResolver{r} }
+
+type authResolver struct{ *Resolver }

@@ -9,9 +9,10 @@ type CustomLogic {
 
 enum OperationType {
   CREATE
-  UPDATE
   READ
   LIST
+  UPDATE
+  DELETE
 }
 
 enum Language {

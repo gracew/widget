@@ -2,6 +2,7 @@ type OperationDefinition {
   create: CreateDefinition!
   read: ReadDefinition!
   list: ListDefinition!
+  delete: DeleteDefinition!
 }
 
 type CreateDefinition {
@@ -16,6 +17,10 @@ type ListDefinition {
   enabled: Boolean!
   sort: [SortDefinition!]!
   filter: [String!]!
+}
+
+type DeleteDefinition {
+  enabled: Boolean!
 }
 
 type SortDefinition {
@@ -40,6 +45,7 @@ input OperationDefinitionInput {
   create: CreateDefinitionInput!
   read: ReadDefinitionInput!
   list: ListDefinitionInput!
+  delete: DeleteDefinitionInput!
 }
 
 input CreateDefinitionInput {
@@ -59,4 +65,8 @@ input ListDefinitionInput {
 input SortDefinitionInput {
   field: String!
   order: SortOrder!
+}
+
+input DeleteDefinitionInput {
+  enabled: Boolean!
 }
