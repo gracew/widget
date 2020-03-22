@@ -61,6 +61,7 @@ func (l Launcher) generateCode() (string, error) {
 	fields := []jen.Code{
 		jen.Id("ID").String().Tag(map[string]string{"json": "id", "sql": "type:uuid,default:gen_random_uuid()"}),
 		jen.Id("CreatedBy").String().Tag(map[string]string{"json": "createdBy"}),
+		jen.Id("CreatedAt").String().Tag(map[string]string{"json": "createdAt", "sql": "default:now()"}),
 	}
 	for _, field := range l.API.Fields {
 		jenField := jen.Id(strings.Title(field.Name))

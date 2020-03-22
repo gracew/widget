@@ -77,8 +77,6 @@ func (r *mutationResolver) DeleteDeploy(ctx context.Context, id string) (bool, e
 		"-f",
 		"custom-logic",
 		"widget-proxy",
-		"||",
-		"true",
 	)
 
 	// TODO(gracew): check err
