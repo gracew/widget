@@ -8,7 +8,7 @@ require (
 	github.com/go-pg/pg v8.0.6+incompatible
 	github.com/golang/protobuf v1.3.2 // indirect
 	github.com/google/uuid v1.1.1
-	github.com/jinzhu/inflection v1.0.0 // indirect
+	github.com/jinzhu/gorm v1.9.12
 	github.com/onsi/ginkgo v1.10.1 // indirect
 	github.com/onsi/gomega v1.7.0 // indirect
 	github.com/pkg/errors v0.8.1

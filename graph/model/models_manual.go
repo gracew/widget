@@ -3,7 +3,7 @@ package model
 type API struct {
 	ID         string               `json:"id"`
 	Name       string               `json:"name"`
-	Fields     []*FieldDefinition   `json:"fields"`
+	Fields     []*FieldDefinition   `json:"fields" gorm:"jsonb"`
 	DeployIds  []string      		`json:"deploys"`
 	Operations *OperationDefinition `json:"operations"`
 }

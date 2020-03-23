@@ -7,25 +7,25 @@ import (
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
-	"github.com/go-pg/pg"
-	"github.com/go-pg/pg/orm"
 	"github.com/gracew/widget/graph"
 	"github.com/gracew/widget/graph/generated"
 	"github.com/gracew/widget/graph/model"
 	"github.com/gracew/widget/store"
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/rs/cors"
 )
 
 const defaultPort = "8080"
 
 func main() {
-	db := pg.Connect(&pg.Options{User: "postgres"})
-	defer db.Close()
-
-	err := createSchema(db)
+	db, err := gorm.Open("postgres", "user=postgres sslmode=disable")
 	if err != nil {
 		panic(err)
 	}
+	defer db.Close()
+
+	createSchema(db)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -42,23 +42,15 @@ func main() {
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
-func createSchema(db *pg.DB) error {
-	for _, model := range []interface{}{
-		(*model.API)(nil),
-		(*model.Deploy)(nil),
-		(*model.DeployStepStatus)(nil),
-		(*model.Auth)(nil),
-		(*model.TestToken)(nil),
-		(*model.CustomLogic)(nil),
-	} {
-		err := db.CreateTable(model, &orm.CreateTableOptions{
-			IfNotExists: true,
-		})
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+func createSchema(db *gorm.DB) {
+	db.AutoMigrate(
+		&model.API{},
+		&model.Auth{},
+		&model.CustomLogic{},
+		&model.Deploy{},
+		&model.DeployStepStatus{},
+		&model.TestToken{},
+	)
 }
 
 type createdBy struct {

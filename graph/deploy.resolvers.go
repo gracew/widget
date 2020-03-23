@@ -13,7 +13,7 @@ import (
 )
 
 func (r *aPIResolver) Deploys(ctx context.Context, obj *model.API) ([]*model.Deploy, error) {
-	return r.Store.Deploys(obj.ID)
+	return r.Store.Deploys(obj.ID), nil
 }
 
 func (r *mutationResolver) DeployAPI(ctx context.Context, input model.DeployAPIInput) (*model.Deploy, error) {
@@ -28,20 +28,14 @@ func (r *mutationResolver) DeployAPI(ctx context.Context, input model.DeployAPII
 		return nil, errors.Wrapf(err, "could not fetch auth for api %s", input.APIID)
 	}
 
-	customLogic, err := r.Store.CustomLogic(input.APIID)
-	if err != nil {
-		return nil, errors.Wrapf(err, "could not fetch custom logic for api %s", input.APIID)
-	}
+	customLogic := r.Store.CustomLogic(input.APIID)
 
 	deploy := &model.Deploy{
 		ID:    input.DeployID,
 		APIID: input.APIID,
 		Env:   input.Env,
 	}
-	err = r.Store.NewDeploy(deploy)
-	if err != nil {
-		return nil, errors.Wrapf(err, "could not save deploy metadata for api %s", input.APIID)
-	}
+	r.Store.NewDeploy(deploy)
 
 	launcher := launch.Launcher{
 		Store:       r.Store,
@@ -82,18 +76,12 @@ func (r *mutationResolver) DeleteDeploy(ctx context.Context, id string) (bool, e
 	// TODO(gracew): check err
 	cmd.Run()
 
-	err := r.Store.DeleteDeploy(id)
-	if err != nil {
-		return false, errors.Wrap(err, "failed to delete deploy metadata")
-	}
+	r.Store.DeleteDeploy(id)
 
 	return true, nil
 }
 
 func (r *queryResolver) DeployStatus(ctx context.Context, deployID string) (*model.DeployStatusResponse, error) {
-	steps, err := r.Store.DeployStatus(deployID)
-	if err != nil {
-		return nil, err
-	}
+	steps := r.Store.DeployStatus(deployID)
 	return &model.DeployStatusResponse{Steps: steps}, nil
 }

@@ -2,16 +2,15 @@ package store
 
 import (
 	"encoding/json"
-	"log"
 
-	"github.com/go-pg/pg"
 	"github.com/google/uuid"
 	"github.com/gracew/widget/graph/model"
+	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 )
 
 type Store struct {
-	DB *pg.DB
+	DB *gorm.DB
 }
 
 func (s Store) NewAPI(input model.DefineAPIInput) (*model.API, error) {
@@ -28,10 +27,7 @@ func (s Store) NewAPI(input model.DefineAPIInput) (*model.API, error) {
 	}
 
 	api.ID = uuid.New().String()
-	err = s.DB.Insert(&api)
-	if err != nil {
-		return nil, err
-	}
+	s.DB.Create(&api)
 	return &api, nil
 }
 
@@ -48,54 +44,38 @@ func (s Store) UpdateAPI(input model.UpdateAPIInput) (*model.API, error) {
 		return nil, errors.Wrapf(err, "could not unmarshal bytes as json");
 	}
 
-	m := s.DB.Model(&api)
+	cols := []interface{}{}
 	if input.Fields != nil {
-		m.Column("fields")
+		cols = append(cols, "fields")
 	}
 	if input.Operations != nil {
-		m.Column("operations")
+		cols = append(cols, "operations")
 	}
-	// TODO(gracew): figure out better way to not clobber name
-	_, err = m.WherePK().Update()
-	if err != nil {
-		return nil, err
-	}
+	s.DB.Model(&api).Update(cols...)
 	return &api, nil
 }
 
 // API fetches an API by ID.
 func (s Store) API(id string) (*model.API, error) {
 	api := &model.API{ID: id}
-	err := s.DB.Select(api)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to fetch API %s", id)
-	}
-
+	s.DB.Select(api)
 	return api, nil
 }
 
 // Apis fetches all APIs.
-func (s Store) Apis() ([]*model.API, error) {
+func (s Store) Apis() []*model.API {
 	var apis []model.API
-	err := s.DB.Model(&apis).Select()
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to fetch APIs")
-	}
+	s.DB.Find(&apis)
 
 	var res []*model.API
 	for i := 0; i < len(apis); i++ {
 		res = append(res, &apis[i])
 	}
-	return res, nil
+	return res
 }
 
-func (s Store) DeleteApi(id string) error {
-	api := &model.API{ID: id}
-	err := s.DB.Delete(api)
-	if err != nil {
-		return errors.Wrapf(err, "failed to delete API %s", id)
-	}
-	return nil
+func (s Store) DeleteApi(id string) {
+	s.DB.Delete(&model.API{ID: id})
 }
 
 func (s Store) SaveAuth(input model.AuthAPIInput) error {
@@ -110,103 +90,96 @@ func (s Store) SaveAuth(input model.AuthAPIInput) error {
 		return errors.Wrapf(err, "could not unmarshal bytes as json");
 	}
 
-	_, err = s.DB.Model(&auth).OnConflict("(apiid) DO UPDATE").Insert()
-	return err
+	s.DB.Save(&auth)
+	return nil
 }
 
 // Auth fetches auth for the specified API.
 func (s Store) Auth(apiID string) (*model.Auth, error) {
 	auth := &model.Auth{APIID: apiID}
-	err := s.DB.Select(auth)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to fetch auth for API %s", apiID)
-	}
-
+	s.DB.Select(auth)
 	return auth, nil
 }
 
-func (s Store) SaveCustomLogic(input model.SaveCustomLogicInput) error {
-	customLogic := &model.CustomLogic{
+func (s Store) SaveCustomLogic(input model.SaveCustomLogicInput) {
+	s.DB.Save(&model.CustomLogic{
 		APIID:         input.APIID,
 		OperationType: input.OperationType,
 		Language:      input.Language,
 		Before:        input.Before,
 		After:         input.After,
-	}
-
-	_, err := s.DB.Model(customLogic).OnConflict("(apiid, operation_type) DO UPDATE").Insert()
-	return err
+	})
 }
 
-func (s Store) CustomLogic(apiID string) ([]*model.CustomLogic, error) {
+func (s Store) CustomLogic(apiID string) []*model.CustomLogic {
 	var models []model.CustomLogic
-	err := s.DB.Model(&models).WhereIn("apiid IN (?)", []string{apiID}).Select()
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to fetch custom logic for API %s", apiID)
-	}
+	s.DB.Where("apiid = ?", apiID).Find(&models)
 
 	var res []*model.CustomLogic
 	for i := 0; i < len(models); i++ {
 		res = append(res, &models[i])
 	}
 
-	return res, nil
+	return res
 }
 
-func (s Store) NewDeploy(deploy *model.Deploy) error {
-	err := s.DB.Insert(deploy)
-	if err != nil {
-		return errors.Wrapf(err, "could not save deploy metadata for api %s", deploy.APIID)
-	}
-	return nil
+func (s Store) NewDeploy(deploy *model.Deploy) {
+	s.DB.Create(deploy)
 }
 
-func (s Store) DeleteDeploy(id string) error {
-	err := s.DB.Delete(&model.Deploy{ID: id})
-	if err != nil {
-		return errors.Wrapf(err, "could not delete deploy %s", id)
-	}
-	return nil
+func (s Store) DeleteDeploy(id string) {
+	s.DB.Delete(&model.Deploy{ID: id})
 }
 
-func (s Store) Deploys(apiID string) ([]*model.Deploy, error) {
+func (s Store) Deploys(apiID string) []*model.Deploy {
 	var models []model.Deploy
-	err := s.DB.Model(&models).WhereIn("apiid IN (?)", []string{apiID}).Select()
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to fetch deploys for API %s", apiID)
-	}
+	s.DB.Where("apiid = ?", apiID).Find(&models)
 
 	var res []*model.Deploy
 	for i := 0; i < len(models); i++ {
 		res = append(res, &models[i])
 	}
 
-	return res, nil
+	return res
 }
 
 func (s Store) SaveDeployStepStatus(deployID string, step model.DeployStep, status model.DeployStatus) {
-	stepStatus := &model.DeployStepStatus{
+	s.DB.Save(&model.DeployStepStatus{
 		DeployID: deployID,
 		Step: step,
 		Status: status,
-	}
-	_, err := s.DB.Model(stepStatus).OnConflict("(deploy_id, step) DO UPDATE").Insert()
-	if err != nil {
-		log.Printf("failed to record status for deploy %s, step %s, status %s: %v", deployID, step, status, err)
-	}
+	})
 }
 
-func (s Store) DeployStatus(deployID string) ([]*model.DeployStepStatus, error) {
+func (s Store) DeployStatus(deployID string) []*model.DeployStepStatus {
 	var steps []model.DeployStepStatus
-	err := s.DB.Model(&steps).WhereIn("deploy_id IN (?)", []string{deployID}).Select()
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to fetch step statuses for deploy %s", deployID)
-	}
+	s.DB.Where("deploy_id = ?", deployID).Find(&steps)
 
 	var res []*model.DeployStepStatus
 	for i := 0; i < len(steps); i++ {
 		res = append(res, &steps[i])
 	}
 
-	return res, nil
+	return res
+}
+
+func (s Store) NewTestToken(input model.TestTokenInput) *model.TestToken {
+	token := &model.TestToken{
+		// TODO(gracew): enforce label uniqueness?
+		Label: input.Label,
+		Token: input.Token,
+	}
+	s.DB.Create(token)
+	return token
+}
+
+func (s Store) TestTokens() []*model.TestToken {
+	var tokens []model.TestToken
+	s.DB.Find(&tokens)
+
+	var res []*model.TestToken
+	for i := 0; i < len(tokens); i++ {
+		res = append(res, &tokens[i])
+	}
+	return res
 }

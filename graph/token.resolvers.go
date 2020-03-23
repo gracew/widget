@@ -5,36 +5,13 @@ package graph
 import (
 	"context"
 
-	"github.com/go-pg/pg"
 	"github.com/gracew/widget/graph/model"
 )
 
 func (r *mutationResolver) AddTestToken(ctx context.Context, input model.TestTokenInput) (*model.TestToken, error) {
-	db := pg.Connect(&pg.Options{User: "postgres"})
-	defer db.Close()
-
-	token := &model.TestToken{
-		// TODO(gracew): enforce label uniqueness?
-		Label: input.Label,
-		Token: input.Token,
-	}
-	err := db.Insert(token)
-	if err != nil {
-		return nil, err
-	}
-	return token, nil
+	return r.Store.NewTestToken(input), nil
 }
 
 func (r *queryResolver) TestTokens(ctx context.Context) (*model.TestTokenResponse, error) {
-	db := pg.Connect(&pg.Options{User: "postgres"})
-	defer db.Close()
-
-	var tokens []model.TestToken
-	db.Model(&tokens).Select()
-
-	var res []*model.TestToken
-	for i := 0; i < len(tokens); i++ {
-		res = append(res, &tokens[i])
-	}
-	return &model.TestTokenResponse{TestTokens: res}, nil
+	return &model.TestTokenResponse{TestTokens: r.Store.TestTokens()}, nil
 }

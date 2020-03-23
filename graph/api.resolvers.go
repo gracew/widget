@@ -18,10 +18,7 @@ func (r *mutationResolver) UpdateAPI(ctx context.Context, input model.UpdateAPII
 }
 
 func (r *mutationResolver) DeleteAPI(ctx context.Context, id string) (bool, error) {
-	err := r.Store.DeleteApi(id)
-	if err != nil {
-		return false, err
-	}
+	r.Store.DeleteApi(id)
 	return true, nil
 }
 
@@ -30,7 +27,7 @@ func (r *queryResolver) API(ctx context.Context, id string) (*model.API, error) 
 }
 
 func (r *queryResolver) Apis(ctx context.Context) ([]*model.API, error) {
-	return r.Store.Apis()
+	return r.Store.Apis(), nil
 }
 
 func (r *Resolver) API() generated.APIResolver           { return &aPIResolver{r} }
