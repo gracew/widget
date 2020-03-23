@@ -5,24 +5,12 @@ package graph
 import (
 	"context"
 
-	"github.com/go-pg/pg"
 	"github.com/gracew/widget/graph/model"
 )
 
 func (r *mutationResolver) SaveCustomLogic(ctx context.Context, input model.SaveCustomLogicInput) (bool, error) {
 	// TODO(gracew): postgres probably isn't the best place for this
-	db := pg.Connect(&pg.Options{User: "postgres"})
-	defer db.Close()
-
-	customLogic := &model.CustomLogic{
-		APIID:         input.APIID,
-		OperationType: input.OperationType,
-		Language:      input.Language,
-		Before:        input.Before,
-		After:         input.After,
-	}
-
-	_, err := db.Model(customLogic).OnConflict("(apiid, operation_type) DO UPDATE").Insert()
+	err := r.Store.SaveCustomLogic(input)
 	if err != nil {
 		return false, err
 	}

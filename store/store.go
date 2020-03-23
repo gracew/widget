@@ -111,10 +111,7 @@ func (s Store) SaveAuth(input model.AuthAPIInput) error {
 	}
 
 	_, err = s.DB.Model(&auth).OnConflict("(apiid) DO UPDATE").Insert()
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 // Auth fetches auth for the specified API.
@@ -126,6 +123,19 @@ func (s Store) Auth(apiID string) (*model.Auth, error) {
 	}
 
 	return auth, nil
+}
+
+func (s Store) SaveCustomLogic(input model.SaveCustomLogicInput) error {
+	customLogic := &model.CustomLogic{
+		APIID:         input.APIID,
+		OperationType: input.OperationType,
+		Language:      input.Language,
+		Before:        input.Before,
+		After:         input.After,
+	}
+
+	_, err := s.DB.Model(customLogic).OnConflict("(apiid, operation_type) DO UPDATE").Insert()
+	return err
 }
 
 func (s Store) CustomLogic(apiID string) ([]*model.CustomLogic, error) {
