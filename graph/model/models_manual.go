@@ -12,6 +12,7 @@ type Auth struct {
 	APIID              string             `json:"apiID" sql:",pk"`
 	ReadPolicy         *AuthPolicy        `json:"readPolicy"`
 	WritePolicy        *AuthPolicy        `json:"writePolicy"`
+	DeletePolicy       *AuthPolicy        `json:"deletePolicy"`
 }
 
 type CustomLogic struct {
