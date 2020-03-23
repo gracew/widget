@@ -59,6 +59,7 @@ func (l Launcher) DeployAPI() error {
 func (l Launcher) generateCode() (string, error) {
 	f := jen.NewFile("generated")
 	fields := []jen.Code{
+		jen.Id("tableName").Struct().Tag(map[string]string{"sql": strings.ToLower(l.API.Name)}),
 		jen.Id("ID").String().Tag(map[string]string{"json": "id", "sql": "type:uuid,default:gen_random_uuid()"}),
 		jen.Id("CreatedBy").String().Tag(map[string]string{"json": "createdBy"}),
 		jen.Id("CreatedAt").String().Tag(map[string]string{"json": "createdAt", "sql": "default:now()"}),

@@ -11,6 +11,7 @@ import (
 
 func TestGenerateCode(t *testing.T) {
 	api := model.API{
+		Name: "Foo",
 		Fields: []*model.FieldDefinition{
 			&model.FieldDefinition{Name: "foo", Type: model.TypeBoolean},
 			&model.FieldDefinition{Name: "bar", Type: model.TypeFloat},
