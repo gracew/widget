@@ -17,8 +17,8 @@ func TestNewAPI(t *testing.T) {
 	name := uuid.New().String()
 	input := model.DefineAPIInput{
 		Name: name,
-			Fields: []*model.FieldDefinitionInput{
-			&model.FieldDefinitionInput{Name: "foo", Type: model.TypeBoolean,
+			Fields: []model.FieldDefinitionInput{
+			model.FieldDefinitionInput{Name: "foo", Type: model.TypeBoolean,
 		},
 	}}
 	createRes, err := s.NewAPI(input)
@@ -34,17 +34,17 @@ func TestNewAPI(t *testing.T) {
 
 	update := model.UpdateAPIInput{
 		ID: createRes.ID,
-		Fields: []*model.FieldDefinitionInput{
-			&model.FieldDefinitionInput{Name: "foo", Type: model.TypeBoolean},
-			&model.FieldDefinitionInput{Name: "bar", Type: model.TypeFloat},
+		Fields: []model.FieldDefinitionInput{
+			model.FieldDefinitionInput{Name: "foo", Type: model.TypeBoolean},
+			model.FieldDefinitionInput{Name: "bar", Type: model.TypeFloat},
 		},
 	}
 	updateRes, err := s.UpdateAPI(update)
 	assert.Nil(t, err)
 	// assert.Equal(t, name, updateRes.Name)
-	assert.Equal(t, []*model.FieldDefinition{
-		&model.FieldDefinition{Name: "foo", Type: model.TypeBoolean},
-		&model.FieldDefinition{Name: "bar", Type: model.TypeFloat},
+	assert.Equal(t, []model.FieldDefinition{
+		model.FieldDefinition{Name: "foo", Type: model.TypeBoolean},
+		model.FieldDefinition{Name: "bar", Type: model.TypeFloat},
 	}, updateRes.Fields)
 }
 

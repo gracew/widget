@@ -17,6 +17,6 @@ func (r *mutationResolver) SaveCustomLogic(ctx context.Context, input model.Save
 	return true, nil
 }
 
-func (r *queryResolver) CustomLogic(ctx context.Context, apiID string) ([]*model.CustomLogic, error) {
+func (r *queryResolver) CustomLogic(ctx context.Context, apiID string) ([]model.CustomLogic, error) {
 	return r.Store.CustomLogic(apiID)
 }

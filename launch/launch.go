@@ -25,7 +25,7 @@ type Launcher struct {
 	DeployID string
 	API model.API
 	Auth model.Auth
-	CustomLogic []*model.CustomLogic
+	CustomLogic []model.CustomLogic
 }
 
 func (l Launcher) DeployAPI() error {

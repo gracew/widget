@@ -75,18 +75,14 @@ func (s Store) API(id string) (*model.API, error) {
 }
 
 // Apis fetches all APIs.
-func (s Store) Apis() ([]*model.API, error) {
+func (s Store) Apis() ([]model.API, error) {
 	var apis []model.API
 	err := s.DB.Model(&apis).Select()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to fetch APIs")
 	}
 
-	var res []*model.API
-	for i := 0; i < len(apis); i++ {
-		res = append(res, &apis[i])
-	}
-	return res, nil
+	return apis, nil
 }
 
 func (s Store) DeleteApi(id string) error {
@@ -138,19 +134,14 @@ func (s Store) SaveCustomLogic(input model.SaveCustomLogicInput) error {
 	return err
 }
 
-func (s Store) CustomLogic(apiID string) ([]*model.CustomLogic, error) {
+func (s Store) CustomLogic(apiID string) ([]model.CustomLogic, error) {
 	var models []model.CustomLogic
 	err := s.DB.Model(&models).WhereIn("apiid IN (?)", []string{apiID}).Select()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to fetch custom logic for API %s", apiID)
 	}
 
-	var res []*model.CustomLogic
-	for i := 0; i < len(models); i++ {
-		res = append(res, &models[i])
-	}
-
-	return res, nil
+	return models, nil
 }
 
 func (s Store) NewDeploy(deploy *model.Deploy) error {
@@ -169,19 +160,14 @@ func (s Store) DeleteDeploy(id string) error {
 	return nil
 }
 
-func (s Store) Deploys(apiID string) ([]*model.Deploy, error) {
+func (s Store) Deploys(apiID string) ([]model.Deploy, error) {
 	var models []model.Deploy
 	err := s.DB.Model(&models).WhereIn("apiid IN (?)", []string{apiID}).Select()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to fetch deploys for API %s", apiID)
 	}
 
-	var res []*model.Deploy
-	for i := 0; i < len(models); i++ {
-		res = append(res, &models[i])
-	}
-
-	return res, nil
+	return models, nil
 }
 
 func (s Store) SaveDeployStepStatus(deployID string, step model.DeployStep, status model.DeployStatus) {
@@ -196,17 +182,12 @@ func (s Store) SaveDeployStepStatus(deployID string, step model.DeployStep, stat
 	}
 }
 
-func (s Store) DeployStatus(deployID string) ([]*model.DeployStepStatus, error) {
+func (s Store) DeployStatus(deployID string) ([]model.DeployStepStatus, error) {
 	var steps []model.DeployStepStatus
 	err := s.DB.Model(&steps).WhereIn("deploy_id IN (?)", []string{deployID}).Select()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to fetch step statuses for deploy %s", deployID)
 	}
 
-	var res []*model.DeployStepStatus
-	for i := 0; i < len(steps); i++ {
-		res = append(res, &steps[i])
-	}
-
-	return res, nil
+	return steps, nil
 }

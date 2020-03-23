@@ -12,7 +12,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (r *aPIResolver) Deploys(ctx context.Context, obj *model.API) ([]*model.Deploy, error) {
+func (r *aPIResolver) Deploys(ctx context.Context, obj *model.API) ([]model.Deploy, error) {
 	return r.Store.Deploys(obj.ID)
 }
 

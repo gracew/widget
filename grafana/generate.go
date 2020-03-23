@@ -12,7 +12,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func ImportDashboard(apiName string, deploy model.Deploy, customLogic []*model.CustomLogic) error {
+func ImportDashboard(apiName string, deploy model.Deploy, customLogic []model.CustomLogic) error {
 	req := createDashboardRequest{
 		Dashboard: generateDashboard(apiName, deploy, customLogic),
 		FolderID: 0,
@@ -49,11 +49,11 @@ type panelInput struct {
 	legend *string
 }
 
-func generateDashboard(apiName string, deploy model.Deploy, customLogic []*model.CustomLogic) Dashboard {
+func generateDashboard(apiName string, deploy model.Deploy, customLogic []model.CustomLogic) Dashboard {
 	var createCustomLogic *model.CustomLogic
 	for _, el := range customLogic {
 		if el.OperationType == model.OperationTypeCreate {
-			createCustomLogic = el
+			createCustomLogic = &el
 		}
 	}
 

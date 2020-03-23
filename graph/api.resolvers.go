@@ -29,7 +29,7 @@ func (r *queryResolver) API(ctx context.Context, id string) (*model.API, error) 
 	return r.Store.API(id)
 }
 
-func (r *queryResolver) Apis(ctx context.Context) ([]*model.API, error) {
+func (r *queryResolver) Apis(ctx context.Context) ([]model.API, error) {
 	return r.Store.Apis()
 }
 

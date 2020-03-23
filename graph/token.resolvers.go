@@ -32,9 +32,5 @@ func (r *queryResolver) TestTokens(ctx context.Context) (*model.TestTokenRespons
 	var tokens []model.TestToken
 	db.Model(&tokens).Select()
 
-	var res []*model.TestToken
-	for i := 0; i < len(tokens); i++ {
-		res = append(res, &tokens[i])
-	}
-	return &model.TestTokenResponse{TestTokens: res}, nil
+	return &model.TestTokenResponse{TestTokens: tokens}, nil
 }
