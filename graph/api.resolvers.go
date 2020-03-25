@@ -26,6 +26,7 @@ func (r *mutationResolver) DeleteAPI(ctx context.Context, id string) (bool, erro
 }
 
 func (r *queryResolver) API(ctx context.Context, id string) (*model.API, error) {
+	context.WithValue(ctx, apiIDCtxKey, id)
 	return r.Store.API(id)
 }
 

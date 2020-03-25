@@ -4,21 +4,45 @@ package graph
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	"github.com/gracew/widget/graph/model"
 )
 
-func (r *actionDefinitionResolver) CustomLogic(ctx context.Context, obj *model.ActionDefinition) (*model.CustomLogic, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *createDefinitionResolver) CustomLogic(ctx context.Context, obj *model.CreateDefinition) (*model.CustomLogic, error) {
+	apiID := apiID(ctx)
+	if apiID == nil {
+		return nil, errors.New("expected API ID to be set in context")
+	}
+	customLogic, err := r.Store.CustomLogic(*apiID)
+	if err != nil {
+		return nil, err
+	}
+	return customLogic.Create, nil
 }
 
-func (r *createDefinitionResolver) CustomLogic(ctx context.Context, obj *model.CreateDefinition) (*model.CustomLogic, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *actionDefinitionResolver) CustomLogic(ctx context.Context, obj *model.ActionDefinition) (*model.CustomLogic, error) {
+	apiID := apiID(ctx)
+	if apiID == nil {
+		return nil, errors.New("expected API ID to be set in context")
+	}
+	customLogic, err := r.Store.CustomLogic(*apiID)
+	if err != nil {
+		return nil, err
+	}
+	return customLogic.Update[obj.Name], nil
 }
 
 func (r *deleteDefinitionResolver) CustomLogic(ctx context.Context, obj *model.DeleteDefinition) (*model.CustomLogic, error) {
-	panic(fmt.Errorf("not implemented"))
+	apiID := apiID(ctx)
+	if apiID == nil {
+		return nil, errors.New("expected API ID to be set in context")
+	}
+	customLogic, err := r.Store.CustomLogic(*apiID)
+	if err != nil {
+		return nil, err
+	}
+	return customLogic.Delete, nil
 }
 
 func (r *mutationResolver) SaveCustomLogic(ctx context.Context, input model.SaveCustomLogicInput) (bool, error) {
@@ -28,14 +52,4 @@ func (r *mutationResolver) SaveCustomLogic(ctx context.Context, input model.Save
 		return false, err
 	}
 	return true, nil
-}
-
-// !!! WARNING !!!
-// The code below was going to be deleted when updating resolvers. It has been copied here so you have
-// one last chance to move it out of harms way if you want. There are two reasons this happens:
-//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
-//    it when you're done.
-//  - You have helper methods in this file. Move them out to keep these resolver files clean.
-func (r *queryResolver) CustomLogic(ctx context.Context, apiID string) ([]model.CustomLogic, error) {
-	return r.Store.CustomLogic(apiID)
 }

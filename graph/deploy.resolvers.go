@@ -4,12 +4,12 @@ package graph
 
 import (
 	"context"
+	"errors"
 	"os/exec"
 
 	"github.com/gracew/widget/grafana"
 	"github.com/gracew/widget/graph/model"
 	"github.com/gracew/widget/launch"
-	"github.com/pkg/errors"
 )
 
 func (r *aPIResolver) Deploys(ctx context.Context, obj *model.API) ([]model.Deploy, error) {

@@ -48,14 +48,14 @@ type DeleteDefinition struct {
 type Auth struct {
 	APIID  string                  `json:"apiID" sql:",pk"`
 	Read   *AuthPolicy        `json:"read"`
-	Update map[string]AuthPolicy `json:"update"`
+	Update map[string]*AuthPolicy `json:"update"`
 	Delete *AuthPolicy        `json:"delete"`
 }
 
 type AllCustomLogic struct {
 	APIID  string                   `json:"apiID" sql:",pk"`
 	Create *CustomLogic        `json:"create"`
-	Update map[string]CustomLogic `json:"update"`
+	Update map[string]*CustomLogic `json:"update"`
 	Delete *CustomLogic        `json:"delete"`
 }
 
