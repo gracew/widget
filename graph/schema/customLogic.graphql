@@ -1,18 +1,7 @@
 type CustomLogic {
-  apiID: ID!
-  # TODO(gracew): limit this to a CustomLogicOperationType with options CREATE, UPDATE, DELETE
-  operationType: OperationType!
   language: Language!
   before: String
   after: String
-}
-
-enum OperationType {
-  CREATE
-  READ
-  LIST
-  UPDATE
-  DELETE
 }
 
 enum Language {
@@ -20,18 +9,38 @@ enum Language {
   PYTHON
 }
 
-extend type Query {
-  customLogic(apiID: ID!): [CustomLogic!]!
+extend type CreateDefinition {
+  # may be null if enabled: false
+  customLogic: CustomLogic
 }
 
-input SaveCustomLogicInput {
-  apiID: ID!
-  operationType: OperationType!
+extend type ActionDefinition {
+  customLogic: CustomLogic!
+}
+
+extend type DeleteDefinition {
+  # may be null if enabled: false
+  customLogic: CustomLogic
+}
+
+input CustomLogicInput {
   language: Language!
   before: String
   after: String
 }
 
+input UpdateCustomLogicInput {
+  actionName: String!
+  customLogic: CustomLogic!
+}
+
+input SaveCustomLogicInput {
+  apiID: ID!
+  create: CustomLogicInput
+  update: [UpdateCustomLogicInput!]
+  delete: CustomLogicInput
+}
+
 extend type Mutation {
-  saveCustomLogic(input: SaveCustomLogicInput!): Boolean!
+  saveCustomLogicCode(input: SaveCustomLogicInput!): Boolean!
 }
