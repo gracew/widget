@@ -31,7 +31,7 @@ input CustomLogicInput {
 
 input UpdateCustomLogicInput {
   actionName: String!
-  customLogic: CustomLogic!
+  customLogic: CustomLogicInput!
 }
 
 input SaveCustomLogicInput {
@@ -42,5 +42,5 @@ input SaveCustomLogicInput {
 }
 
 extend type Mutation {
-  saveCustomLogicCode(input: SaveCustomLogicInput!): Boolean!
+  saveCustomLogic(input: SaveCustomLogicInput!): Boolean!
 }

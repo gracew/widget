@@ -45,11 +45,11 @@ func main() {
 func createSchema(db *pg.DB) error {
 	for _, model := range []interface{}{
 		(*model.API)(nil),
+		(*model.Auth)(nil),
+		(*model.AllCustomLogic)(nil),
 		(*model.Deploy)(nil),
 		(*model.DeployStepStatus)(nil),
-		(*model.Auth)(nil),
 		(*model.TestToken)(nil),
-		(*model.CustomLogic)(nil),
 	} {
 		err := db.CreateTable(model, &orm.CreateTableOptions{
 			IfNotExists: true,
