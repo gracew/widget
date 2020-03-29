@@ -25,7 +25,7 @@ type Launcher struct {
 	DeployID string
 	API model.API
 	Auth model.Auth
-	CustomLogic []model.CustomLogic
+	CustomLogic model.AllCustomLogic
 }
 
 func (l Launcher) DeployAPI() error {
@@ -178,21 +178,20 @@ func (l Launcher) deployCustomLogic() error {
 	}
 
 	// for now we just pick the first language
-	ext, err := getExtension(l.CustomLogic[0].Language)
+	language := l.CustomLogic.Create.Language
+	ext, err := getExtension(l.CustomLogic.Create.Language)
 	if err != nil {
 		return errors.Wrap(err, "could not determine file extension")
 	}
 
-	for _, logic := range l.CustomLogic {
-		if logic.Before != nil {
-			writeFileInDir(customLogicDir, "beforeCreate" + ext, *logic.Before)
+		if l.CustomLogic.Create.Before != nil {
+			writeFileInDir(customLogicDir, "beforeCreate" + ext, *l.CustomLogic.Create.Before)
 		}
-		if logic.After != nil {
-			writeFileInDir(customLogicDir, "afterCreate" + ext, *logic.After)
+		if l.CustomLogic.Create.After != nil {
+			writeFileInDir(customLogicDir, "afterCreate" + ext, *l.CustomLogic.Create.After)
 		}
-	}
 
-	image, err := getImage(l.CustomLogic[0].Language)
+	image, err := getImage(language)
 	if err != nil {
 		return errors.Wrap(err, "could not determine image")
 	}

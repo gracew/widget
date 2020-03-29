@@ -12,7 +12,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func ImportDashboard(apiName string, deploy model.Deploy, customLogic []model.CustomLogic) error {
+func ImportDashboard(apiName string, deploy model.Deploy, customLogic model.AllCustomLogic) error {
 	req := createDashboardRequest{
 		Dashboard: generateDashboard(apiName, deploy, customLogic),
 		FolderID: 0,
@@ -49,14 +49,7 @@ type panelInput struct {
 	legend *string
 }
 
-func generateDashboard(apiName string, deploy model.Deploy, customLogic []model.CustomLogic) Dashboard {
-	var createCustomLogic *model.CustomLogic
-	for _, el := range customLogic {
-		if el.OperationType == model.OperationTypeCreate {
-			createCustomLogic = &el
-		}
-	}
-
+func generateDashboard(apiName string, deploy model.Deploy, customLogic model.AllCustomLogic) Dashboard {
 	total := "Total"
 	method := "{{method}}"
 	quantile := "{{quantile}}"
@@ -67,15 +60,15 @@ func generateDashboard(apiName string, deploy model.Deploy, customLogic []model.
 		// create
 		panelInput{title: "Request Latency: Create", expr: apiName + "_http_request_duration_seconds{method=\"CREATE\"}", legend: &quantile},
 	}
-	if createCustomLogic != nil {
-		if createCustomLogic.Before != nil {
+	if customLogic.Create != nil {
+		if customLogic.Create.Before != nil {
 			inputs = append(inputs, panelInput{
 				title: "Custom Logic Latency: beforeCreate",
 				expr: apiName + "_custom_logic_duration_seconds{method=\"CREATE\", when=\"before\"}",
 				legend: &quantile,
 			})
 		}
-		if createCustomLogic.After != nil {
+		if customLogic.Create.After != nil {
 			inputs = append(inputs, panelInput{
 				title: "Custom Logic Latency: afterCreate",
 				expr: apiName + "_custom_logic_duration_seconds{method=\"CREATE\", when=\"after\"}",

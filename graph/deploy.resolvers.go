@@ -4,12 +4,12 @@ package graph
 
 import (
 	"context"
-	"errors"
 	"os/exec"
 
 	"github.com/gracew/widget/grafana"
 	"github.com/gracew/widget/graph/model"
 	"github.com/gracew/widget/launch"
+	"github.com/pkg/errors"
 )
 
 func (r *aPIResolver) Deploys(ctx context.Context, obj *model.API) ([]model.Deploy, error) {
@@ -48,7 +48,7 @@ func (r *mutationResolver) DeployAPI(ctx context.Context, input model.DeployAPII
 		DeployID:    deploy.ID,
 		API:         *api,
 		Auth:        *auth,
-		CustomLogic: customLogic,
+		CustomLogic: *customLogic,
 	}
 
 	err = launcher.DeployAPI()
@@ -56,14 +56,14 @@ func (r *mutationResolver) DeployAPI(ctx context.Context, input model.DeployAPII
 		return nil, errors.Wrapf(err, "could not launch container for api %s", input.APIID)
 	}
 
-	if len(customLogic) > 0 {
+	if customLogic != nil {
 		err = launcher.DeployCustomLogic()
 		if err != nil {
 			return nil, errors.Wrapf(err, "could not launch custom logic for api %s", input.APIID)
 		}
 	}
 
-	err = grafana.ImportDashboard(api.Name, *deploy, customLogic)
+	err = grafana.ImportDashboard(api.Name, *deploy, *customLogic)
 	if err != nil {
 		return nil, errors.Wrapf(err, "could not create grafana dashboard for api %s", input.APIID)
 	}

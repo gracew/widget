@@ -106,7 +106,7 @@ func (s Store) SaveAuth(input model.AuthAPIInput) error {
 		Delete:         convertAuthPolicyInput(input.Delete),
 	}
 
-	_, err := s.DB.Model(&auth).OnConflict("(apiid) DO UPDATE").Insert()
+	_, err := s.DB.Model(auth).OnConflict("(apiid) DO UPDATE").Insert()
 	return err
 }
 
@@ -119,6 +119,9 @@ func (s Store) Auth(apiID string) (*model.Auth, error) {
 	auth := &model.Auth{APIID: apiID}
 	err := s.DB.Select(auth)
 	if err != nil {
+		if errors.Is(err, pg.ErrNoRows) {
+			return nil, nil
+		}
 		return nil, errors.Wrapf(err, "failed to fetch auth for API %s", apiID)
 	}
 
@@ -149,6 +152,9 @@ func (s Store) CustomLogic(apiID string) (*model.AllCustomLogic, error) {
 	customLogic := &model.AllCustomLogic{APIID: apiID}
 	err := s.DB.Select(customLogic)
 	if err != nil {
+		if errors.Is(err, pg.ErrNoRows) {
+			return nil, nil
+		}
 		return nil, errors.Wrapf(err, "failed to fetch custom logic for API %s", apiID)
 	}
 

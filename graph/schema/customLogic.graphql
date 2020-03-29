@@ -10,16 +10,17 @@ enum Language {
 }
 
 extend type CreateDefinition {
-  # may be null if enabled: false
+  # may be null if enabled: false or if not yet defined
   customLogic: CustomLogic
 }
 
 extend type ActionDefinition {
-  customLogic: CustomLogic!
+  # may be null if enabled: false or if not yet defined
+  customLogic: CustomLogic
 }
 
 extend type DeleteDefinition {
-  # may be null if enabled: false
+  # may be null if enabled: false or if not yet defined
   customLogic: CustomLogic
 }
 

@@ -12,21 +12,22 @@ enum AuthPolicyType {
 }
 
 extend type ReadDefinition {
-  # may be null if enabled: false
+  # may be null if enabled: false or if not yet defined
   auth: AuthPolicy
 }
 
 extend type ListDefinition {
-  # may be null if enabled: false
+  # may be null if enabled: false or if not yet defined
   auth: AuthPolicy
 }
 
 extend type ActionDefinition {
-  auth: AuthPolicy!
+  # may be null if enabled: false or if not yet defined
+  auth: AuthPolicy
 }
 
 extend type DeleteDefinition {
-  # may be null if enabled: false
+  # may be null if enabled: false or if not yet defined
   auth: AuthPolicy
 }
 
