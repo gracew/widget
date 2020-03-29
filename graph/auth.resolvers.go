@@ -11,10 +11,10 @@ import (
 
 func (r *actionDefinitionResolver) Auth(ctx context.Context, obj *model.ActionDefinition) (*model.AuthPolicy, error) {
 	apiID := apiID(ctx)
-	if apiID == nil {
+	if apiID == "" {
 		return nil, errors.New("expected API ID to be set in context")
 	}
-	auth, err := r.Store.Auth(*apiID)
+	auth, err := r.Store.Auth(apiID)
 	if err != nil || auth == nil {
 		return nil, err
 	}
@@ -23,10 +23,10 @@ func (r *actionDefinitionResolver) Auth(ctx context.Context, obj *model.ActionDe
 
 func (r *deleteDefinitionResolver) Auth(ctx context.Context, obj *model.DeleteDefinition) (*model.AuthPolicy, error) {
 	apiID := apiID(ctx)
-	if apiID == nil {
+	if apiID == "" {
 		return nil, errors.New("expected API ID to be set in context")
 	}
-	auth, err := r.Store.Auth(*apiID)
+	auth, err := r.Store.Auth(apiID)
 	if err != nil || auth == nil {
 		return nil, err
 	}
@@ -35,10 +35,10 @@ func (r *deleteDefinitionResolver) Auth(ctx context.Context, obj *model.DeleteDe
 
 func (r *listDefinitionResolver) Auth(ctx context.Context, obj *model.ListDefinition) (*model.AuthPolicy, error) {
 	apiID := apiID(ctx)
-	if apiID == nil {
+	if apiID == "" {
 		return nil, errors.New("expected API ID to be set in context")
 	}
-	auth, err := r.Store.Auth(*apiID)
+	auth, err := r.Store.Auth(apiID)
 	if err != nil || auth == nil {
 		return nil, err
 	}
@@ -55,10 +55,10 @@ func (r *mutationResolver) AuthAPI(ctx context.Context, input model.AuthAPIInput
 
 func (r *readDefinitionResolver) Auth(ctx context.Context, obj *model.ReadDefinition) (*model.AuthPolicy, error) {
 	apiID := apiID(ctx)
-	if apiID == nil {
-		return nil, errors.New("expected API ID to be set in operation context")
+	if apiID == "" {
+		return nil, errors.New("expected API ID to be set in context")
 	}
-	auth, err := r.Store.Auth(*apiID)
+	auth, err := r.Store.Auth(apiID)
 	if err != nil || auth == nil {
 		return nil, err
 	}

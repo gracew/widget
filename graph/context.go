@@ -10,7 +10,7 @@ import (
 // to prevent collisions between different context uses
 const apiIDCtxKey = "apiID"
 
-func apiID(ctx context.Context) *string {
+func apiID(ctx context.Context) string {
 	opCtxt := graphql.GetOperationContext(ctx)
-	return opCtxt.Variables["id"].(*string)
+	return opCtxt.Variables["id"].(string)
 }

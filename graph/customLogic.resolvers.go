@@ -11,10 +11,10 @@ import (
 
 func (r *actionDefinitionResolver) CustomLogic(ctx context.Context, obj *model.ActionDefinition) (*model.CustomLogic, error) {
 	apiID := apiID(ctx)
-	if apiID == nil {
+	if apiID == "" {
 		return nil, errors.New("expected API ID to be set in context")
 	}
-	customLogic, err := r.Store.CustomLogic(*apiID)
+	customLogic, err := r.Store.CustomLogic(apiID)
 	if err != nil || customLogic == nil {
 		return nil, err
 	}
@@ -23,10 +23,10 @@ func (r *actionDefinitionResolver) CustomLogic(ctx context.Context, obj *model.A
 
 func (r *createDefinitionResolver) CustomLogic(ctx context.Context, obj *model.CreateDefinition) (*model.CustomLogic, error) {
 	apiID := apiID(ctx)
-	if apiID == nil {
+	if apiID == "" {
 		return nil, errors.New("expected API ID to be set in context")
 	}
-	customLogic, err := r.Store.CustomLogic(*apiID)
+	customLogic, err := r.Store.CustomLogic(apiID)
 	if err != nil || customLogic == nil {
 		return nil, err
 	}
@@ -35,10 +35,10 @@ func (r *createDefinitionResolver) CustomLogic(ctx context.Context, obj *model.C
 
 func (r *deleteDefinitionResolver) CustomLogic(ctx context.Context, obj *model.DeleteDefinition) (*model.CustomLogic, error) {
 	apiID := apiID(ctx)
-	if apiID == nil {
+	if apiID == "" {
 		return nil, errors.New("expected API ID to be set in context")
 	}
-	customLogic, err := r.Store.CustomLogic(*apiID)
+	customLogic, err := r.Store.CustomLogic(apiID)
 	if err != nil || customLogic == nil {
 		return nil, err
 	}

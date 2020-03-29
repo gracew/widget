@@ -129,7 +129,7 @@ func (s Store) Auth(apiID string) (*model.Auth, error) {
 }
 
 func (s Store) SaveCustomLogic(input model.SaveCustomLogicInput) error {
-	var update map[string]*model.CustomLogic
+	var update = make(map[string]*model.CustomLogic)
 	for _, updateInput := range input.Update {
 		update[updateInput.ActionName] = convertCustomLogicInput(updateInput.CustomLogic)
 	}
@@ -145,6 +145,9 @@ func (s Store) SaveCustomLogic(input model.SaveCustomLogicInput) error {
 }
 
 func convertCustomLogicInput(input *model.CustomLogicInput) *model.CustomLogic {
+	if input == nil {
+		return nil
+	}
 	return &model.CustomLogic{Language: input.Language, Before: input.Before, After: input.After}
 }
 
