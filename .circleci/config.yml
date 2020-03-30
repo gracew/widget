@@ -9,4 +9,4 @@ jobs:
       - run:
           name: "Enforce Go Formatted Code"
           # https://circleci.com/blog/enforce-build-standards/
-          command: "! go fmt ./... 2>&1 | read"
+          command: "go fmt ./... 2>&1 | read; echo $?"
