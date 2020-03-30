@@ -107,7 +107,6 @@ func generateDashboard(apiName string, deploy model.Deploy, customLogic model.Al
 
 func customLogicPanels(apiName string, method string, customLogic *model.CustomLogic) []panelInput {
 	panels := []panelInput{}
-		// panelInput{title: "Total Requests/sec (5 min avg)", expr: fmt.Sprintf("sum(rate(%s_http_requests_total[5m]))", apiName), legend: &total},
 	if customLogic.Before != nil {
 		panels = append(panels, panelInput{
 			title: fmt.Sprintf("Custom Logic Latency: before%s", strings.Title(strings.ToLower(method))),
