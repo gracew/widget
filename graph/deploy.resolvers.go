@@ -9,7 +9,7 @@ import (
 	"github.com/gracew/widget/grafana"
 	"github.com/gracew/widget/graph/model"
 	"github.com/gracew/widget/launch"
-	"github.com/pkg/errors"
+	errorsw "github.com/pkg/errors"
 )
 
 func (r *aPIResolver) Deploys(ctx context.Context, obj *model.API) ([]model.Deploy, error) {
@@ -20,17 +20,17 @@ func (r *mutationResolver) DeployAPI(ctx context.Context, input model.DeployAPII
 	// TODO(gracew): parallelize these db calls lol
 	api, err := r.Store.API(input.APIID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "could not fetch api %s", input.APIID)
+		return nil, errorsw.Wrapf(err, "could not fetch api %s", input.APIID)
 	}
 
 	auth, err := r.Store.Auth(input.APIID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "could not fetch auth for api %s", input.APIID)
+		return nil, errorsw.Wrapf(err, "could not fetch auth for api %s", input.APIID)
 	}
 
 	customLogic, err := r.Store.CustomLogic(input.APIID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "could not fetch custom logic for api %s", input.APIID)
+		return nil, errorsw.Wrapf(err, "could not fetch custom logic for api %s", input.APIID)
 	}
 
 	deploy := &model.Deploy{
@@ -40,7 +40,7 @@ func (r *mutationResolver) DeployAPI(ctx context.Context, input model.DeployAPII
 	}
 	err = r.Store.NewDeploy(deploy)
 	if err != nil {
-		return nil, errors.Wrapf(err, "could not save deploy metadata for api %s", input.APIID)
+		return nil, errorsw.Wrapf(err, "could not save deploy metadata for api %s", input.APIID)
 	}
 
 	launcher := launch.Launcher{
@@ -53,19 +53,19 @@ func (r *mutationResolver) DeployAPI(ctx context.Context, input model.DeployAPII
 
 	err = launcher.DeployAPI()
 	if err != nil {
-		return nil, errors.Wrapf(err, "could not launch container for api %s", input.APIID)
+		return nil, errorsw.Wrapf(err, "could not launch container for api %s", input.APIID)
 	}
 
 	if customLogic != nil {
 		err = launcher.DeployCustomLogic()
 		if err != nil {
-			return nil, errors.Wrapf(err, "could not launch custom logic for api %s", input.APIID)
+			return nil, errorsw.Wrapf(err, "could not launch custom logic for api %s", input.APIID)
 		}
 	}
 
 	err = grafana.ImportDashboard(api.Name, *deploy, *customLogic)
 	if err != nil {
-		return nil, errors.Wrapf(err, "could not create grafana dashboard for api %s", input.APIID)
+		return nil, errorsw.Wrapf(err, "could not create grafana dashboard for api %s", input.APIID)
 	}
 
 	return deploy, nil
@@ -84,7 +84,7 @@ func (r *mutationResolver) DeleteDeploy(ctx context.Context, id string) (bool, e
 
 	err := r.Store.DeleteDeploy(id)
 	if err != nil {
-		return false, errors.Wrap(err, "failed to delete deploy metadata")
+		return false, errorsw.Wrap(err, "failed to delete deploy metadata")
 	}
 
 	return true, nil
