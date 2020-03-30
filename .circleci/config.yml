@@ -5,6 +5,7 @@ jobs:
       - image: golang:1.13
     steps:
       - checkout
+      - run: go get
       - run: go run github.com/99designs/gqlgen
       - run:
           name: "Enforce Go Formatted Code"
