@@ -5,6 +5,6 @@ package graph
 
 import "github.com/gracew/widget/store"
 
-type Resolver struct{
+type Resolver struct {
 	Store store.Store
 }

@@ -10,17 +10,16 @@ import (
 )
 
 func TestNewAPI(t *testing.T) {
-	db := pg.Connect(&pg.Options{User: "postgres" })
+	db := pg.Connect(&pg.Options{User: "postgres"})
 	defer db.Close()
 	s := Store{DB: db}
 
 	name := uuid.New().String()
 	input := model.DefineAPIInput{
 		Name: name,
-			Fields: []model.FieldDefinitionInput{
-			model.FieldDefinitionInput{Name: "foo", Type: model.TypeBoolean,
-		},
-	}}
+		Fields: []model.FieldDefinitionInput{
+			model.FieldDefinitionInput{Name: "foo", Type: model.TypeBoolean},
+		}}
 	createRes, err := s.NewAPI(input)
 	assert.Nil(t, err)
 	assert.Equal(t, name, createRes.Name)
@@ -49,13 +48,13 @@ func TestNewAPI(t *testing.T) {
 }
 
 func TestAuth(t *testing.T) {
-	db := pg.Connect(&pg.Options{User: "postgres" })
+	db := pg.Connect(&pg.Options{User: "postgres"})
 	defer db.Close()
 	s := Store{DB: db}
 
 	apiID := uuid.New().String()
 	input := model.AuthAPIInput{
-		APIID: apiID,
+		APIID:      apiID,
 		ReadPolicy: &model.AuthPolicyInput{Type: model.AuthPolicyTypeCreatedBy},
 	}
 	err := s.SaveAuth(input)
@@ -67,7 +66,7 @@ func TestAuth(t *testing.T) {
 	assert.Equal(t, &model.AuthPolicy{Type: model.AuthPolicyTypeCreatedBy}, auth.ReadPolicy)
 
 	update := model.AuthAPIInput{
-		APIID: apiID,
+		APIID:      apiID,
 		ReadPolicy: &model.AuthPolicyInput{Type: model.AuthPolicyTypeAttributeMatch},
 	}
 
@@ -80,7 +79,7 @@ func TestAuth(t *testing.T) {
 }
 
 func TestDeployStatus(t *testing.T) {
-	db := pg.Connect(&pg.Options{User: "postgres" })
+	db := pg.Connect(&pg.Options{User: "postgres"})
 	defer db.Close()
 	s := Store{DB: db}
 
