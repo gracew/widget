@@ -13,13 +13,20 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	CREATE = "create"
+	READ   = "read"
+	LIST   = "list"
+	DELETE = "delete"
+)
+
 var (
 	total    = "Total"
 	method   = "{{method}}"
 	quantile = "{{quantile}}"
 )
 
-func ImportDashboard(apiName string, deploy model.Deploy, customLogic model.AllCustomLogic) error {
+func ImportDashboard(apiName string, deploy model.Deploy, customLogic *model.AllCustomLogic) error {
 	req := createDashboardRequest{
 		Dashboard: generateDashboard(apiName, deploy, customLogic),
 		FolderID:  0,
@@ -56,39 +63,42 @@ type panelInput struct {
 	legend *string
 }
 
-func generateDashboard(apiName string, deploy model.Deploy, customLogic model.AllCustomLogic) Dashboard {
+func generateDashboard(apiName string, deploy model.Deploy, customLogic *model.AllCustomLogic) Dashboard {
 	inputs := []panelInput{
 		// overall
 		panelInput{title: "Total Requests/sec (5 min avg)", expr: fmt.Sprintf("sum(rate(%s_http_requests_total[5m]))", apiName), legend: &total},
 		panelInput{title: "Requests/sec by method (5 min avg)", expr: fmt.Sprintf("rate(%s_http_requests_total[5m])", apiName), legend: &method},
 		// create
-		panelInput{title: "Request Latency: Create", expr: apiName + "_http_request_duration_seconds{method=\"CREATE\"}", legend: &quantile},
+		panelInput{title: "Request Latency: Create", expr: fmt.Sprintf("%s_http_request_duration_seconds{method=\"%s\"}", apiName, CREATE), legend: &quantile},
 	}
-	inputs = append(inputs, customLogicPanels(apiName, "CREATE", customLogic.Create)...)
+	if customLogic != nil {
+		inputs = append(inputs, customLogicPanels(apiName, CREATE, customLogic.Create)...)
+	}
 	inputs = append(inputs,
-		panelInput{title: "Database Latency: Create", expr: apiName + "_database_access_duration_seconds{method=\"CREATE\"}", legend: &quantile},
+		panelInput{title: "Database Latency: Create", expr: fmt.Sprintf("%s_database_access_duration_seconds{method=\"%s\"}", apiName, CREATE), legend: &quantile},
 		// read
-		panelInput{title: "Request Latency: Read", expr: apiName + "_http_request_duration_seconds{method=\"READ\"}", legend: &quantile},
-		panelInput{title: "Database Latency: Read", expr: apiName + "_database_access_duration_seconds{method=\"READ\"}", legend: &quantile},
+		panelInput{title: "Request Latency: Read", expr: fmt.Sprintf("%s_http_request_duration_seconds{method=\"%s\"}", apiName, READ), legend: &quantile},
+		panelInput{title: "Database Latency: Read", expr: fmt.Sprintf("%s_database_access_duration_seconds{method=\"%s\"}", apiName, READ), legend: &quantile},
 		// list
-		panelInput{title: "Request Latency: List", expr: apiName + "_http_request_duration_seconds{method=\"LIST\"}", legend: &quantile},
-		panelInput{title: "Database Latency: List", expr: apiName + "_database_access_duration_seconds{method=\"LIST\"}", legend: &quantile},
+		panelInput{title: "Request Latency: List", expr: fmt.Sprintf("%s_http_request_duration_seconds{method=\"%s\"}", apiName, LIST), legend: &quantile},
+		panelInput{title: "Database Latency: List", expr: fmt.Sprintf("%s_database_access_duration_seconds{method=\"%s\"}", apiName, LIST), legend: &quantile},
 	)
 
 	// update
-	for actionName, actionCustomLogic := range customLogic.Update {
-		inputs = append(inputs, panelInput{title: "Request Latency: " + actionName, expr: fmt.Sprintf("%s_http_request_duration_seconds{method=\"%s\"}", apiName, actionName), legend: &quantile})
-		inputs = append(inputs, customLogicPanels(apiName, actionName, actionCustomLogic)...)
-		inputs = append(inputs, panelInput{title: "Database Latency: " + actionName, expr: fmt.Sprintf("%s_database_access_duration_seconds{method=\"%s\"}", apiName, actionName), legend: &quantile})
+	if customLogic != nil {
+		for actionName, actionCustomLogic := range customLogic.Update {
+			inputs = append(inputs, panelInput{title: "Request Latency: " + actionName, expr: fmt.Sprintf("%s_http_request_duration_seconds{method=\"%s\"}", apiName, actionName), legend: &quantile})
+			inputs = append(inputs, customLogicPanels(apiName, actionName, actionCustomLogic)...)
+			inputs = append(inputs, panelInput{title: "Database Latency: " + actionName, expr: fmt.Sprintf("%s_database_access_duration_seconds{method=\"%s\"}", apiName, actionName), legend: &quantile})
+		}
 	}
 
 	// delete
-	inputs = append(inputs, panelInput{title: "Request Latency: Delete", expr: apiName + "_http_request_duration_seconds{method=\"DELETE\"}", legend: &quantile})
-	inputs = append(inputs, customLogicPanels(apiName, "DELETE", customLogic.Delete)...)
-	inputs = append(inputs, panelInput{title: "Database Latency: Delete", expr: apiName + "_database_access_duration_seconds{method=\"DELETE\"}", legend: &quantile})
-	if customLogic.Delete != nil {
-		inputs = append(inputs, customLogicPanels(apiName, "Delete", customLogic.Delete)...)
+	inputs = append(inputs, panelInput{title: "Request Latency: Delete", expr: fmt.Sprintf("%s_http_request_duration_seconds{method=\"%s\"}", apiName, DELETE), legend: &quantile})
+	if customLogic != nil {
+		inputs = append(inputs, customLogicPanels(apiName, DELETE, customLogic.Delete)...)
 	}
+	inputs = append(inputs, panelInput{title: "Database Latency: Delete", expr: fmt.Sprintf("%s_database_access_duration_seconds{method=\"%s\"}", apiName, DELETE), legend: &quantile})
 	var panels []Panel
 	for i, input := range inputs {
 		panels = append(panels, generatePanel(apiName, i, input))

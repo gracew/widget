@@ -25,7 +25,7 @@ type Launcher struct {
 	DeployID    string
 	API         model.API
 	Auth        model.Auth
-	CustomLogic model.AllCustomLogic
+	CustomLogic *model.AllCustomLogic
 }
 
 func (l Launcher) DeployAPI() error {
@@ -185,8 +185,8 @@ func (l Launcher) deployCustomLogic() error {
 		return errors.Wrap(err, "could not determine file extension")
 	}
 
-	writeCustomLogicFiles(customLogicDir, "Create", ext, l.CustomLogic.Create)
-	writeCustomLogicFiles(customLogicDir, "Delete", ext, l.CustomLogic.Delete)
+	writeCustomLogicFiles(customLogicDir, "create", ext, l.CustomLogic.Create)
+	writeCustomLogicFiles(customLogicDir, "delete", ext, l.CustomLogic.Delete)
 	for actionName, actionCustomLogic := range l.CustomLogic.Update {
 		writeCustomLogicFiles(customLogicDir, actionName, ext, actionCustomLogic)
 	}
