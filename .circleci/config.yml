@@ -8,4 +8,5 @@ jobs:
       - run: go run github.com/99designs/gqlgen
       - run:
           name: "Enforce Go Formatted Code"
-          command: "go fmt ./... 2>&1"
+          # https://circleci.com/blog/enforce-build-standards/
+          command: "! go fmt ./... 2>&1 | read"
