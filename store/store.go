@@ -95,19 +95,23 @@ func (s Store) DeleteApi(id string) error {
 }
 
 func (s Store) SaveAuth(input model.AuthAPIInput) error {
-	bytes, err := json.Marshal(input)
-	if err != nil {
-		return errors.Wrapf(err, "could not marshal input to json");
+	var update map[string]*model.AuthPolicy
+	for _, updateInput := range input.Update {
+		update[updateInput.ActionName] = convertAuthPolicyInput(updateInput.Auth)
+	}
+	auth := &model.Auth{
+		APIID:         input.APIID,
+		Read:      convertAuthPolicyInput(input.Read),
+		Update:        update,
+		Delete:         convertAuthPolicyInput(input.Delete),
 	}
 
-	var auth model.Auth
-	err = json.Unmarshal(bytes, &auth)
-	if err != nil {
-		return errors.Wrapf(err, "could not unmarshal bytes as json");
-	}
-
-	_, err = s.DB.Model(&auth).OnConflict("(apiid) DO UPDATE").Insert()
+	_, err := s.DB.Model(auth).OnConflict("(apiid) DO UPDATE").Insert()
 	return err
+}
+
+func convertAuthPolicyInput(input *model.AuthPolicyInput) *model.AuthPolicy {
+	return &model.AuthPolicy{Type: input.Type, UserAttribute: input.UserAttribute, ObjectAttribute: input.ObjectAttribute}
 }
 
 // Auth fetches auth for the specified API.
@@ -115,6 +119,9 @@ func (s Store) Auth(apiID string) (*model.Auth, error) {
 	auth := &model.Auth{APIID: apiID}
 	err := s.DB.Select(auth)
 	if err != nil {
+		if errors.Is(err, pg.ErrNoRows) {
+			return nil, nil
+		}
 		return nil, errors.Wrapf(err, "failed to fetch auth for API %s", apiID)
 	}
 
@@ -122,26 +129,36 @@ func (s Store) Auth(apiID string) (*model.Auth, error) {
 }
 
 func (s Store) SaveCustomLogic(input model.SaveCustomLogicInput) error {
-	customLogic := &model.CustomLogic{
+	var update = make(map[string]*model.CustomLogic)
+	for _, updateInput := range input.Update {
+		update[updateInput.ActionName] = convertCustomLogicInput(updateInput.CustomLogic)
+	}
+	customLogic := &model.AllCustomLogic{
 		APIID:         input.APIID,
-		OperationType: input.OperationType,
-		Language:      input.Language,
-		Before:        input.Before,
-		After:         input.After,
+		Create:      convertCustomLogicInput(input.Create),
+		Update:        update,
+		Delete:         convertCustomLogicInput(input.Delete),
 	}
 
-	_, err := s.DB.Model(customLogic).OnConflict("(apiid, operation_type) DO UPDATE").Insert()
+	_, err := s.DB.Model(customLogic).OnConflict("(apiid) DO UPDATE").Insert()
 	return err
 }
 
-func (s Store) CustomLogic(apiID string) ([]model.CustomLogic, error) {
-	var models []model.CustomLogic
-	err := s.DB.Model(&models).WhereIn("apiid IN (?)", []string{apiID}).Select()
+func convertCustomLogicInput(input *model.CustomLogicInput) *model.CustomLogic {
+	return &model.CustomLogic{Language: input.Language, Before: input.Before, After: input.After}
+}
+
+func (s Store) CustomLogic(apiID string) (*model.AllCustomLogic, error) {
+	customLogic := &model.AllCustomLogic{APIID: apiID}
+	err := s.DB.Select(customLogic)
 	if err != nil {
+		if errors.Is(err, pg.ErrNoRows) {
+			return nil, nil
+		}
 		return nil, errors.Wrapf(err, "failed to fetch custom logic for API %s", apiID)
 	}
 
-	return models, nil
+	return customLogic, nil
 }
 
 func (s Store) NewDeploy(deploy *model.Deploy) error {

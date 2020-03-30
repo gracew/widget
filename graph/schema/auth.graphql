@@ -1,10 +1,3 @@
-type Auth {
-  apiID: ID!
-  readPolicy: AuthPolicy!
-  writePolicy: AuthPolicy!
-  deletePolicy: AuthPolicy!
-}
-
 type AuthPolicy {
   type: AuthPolicyType!
   # type ATTRIBUTE_MATCH
@@ -18,15 +11,31 @@ enum AuthPolicyType {
   CUSTOM
 }
 
-extend type Query {
-  auth(apiID: ID!): Auth
+extend type ReadDefinition {
+  # may be null if enabled: false or if not yet defined
+  auth: AuthPolicy
+}
+
+extend type ListDefinition {
+  # may be null if enabled: false or if not yet defined
+  auth: AuthPolicy
+}
+
+extend type ActionDefinition {
+  # may be null if enabled: false or if not yet defined
+  auth: AuthPolicy
+}
+
+extend type DeleteDefinition {
+  # may be null if enabled: false or if not yet defined
+  auth: AuthPolicy
 }
 
 input AuthAPIInput {
   apiID: ID!
-  readPolicy: AuthPolicyInput!
-  writePolicy: AuthPolicyInput!
-  deletePolicy: AuthPolicyInput!
+  read: AuthPolicyInput
+  update: [UpdateAuthPolicyInput!]
+  delete: AuthPolicyInput
 }
 
 input AuthPolicyInput {
@@ -34,6 +43,11 @@ input AuthPolicyInput {
   # type ATTRIBUTE_MATCH
   userAttribute: String
   objectAttribute: String
+}
+
+input UpdateAuthPolicyInput {
+  actionName: String!
+  auth: AuthPolicyInput!
 }
 
 extend type Mutation {

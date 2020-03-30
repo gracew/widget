@@ -7,12 +7,19 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/gracew/widget/graph/model"
 	"github.com/pkg/errors"
 )
 
-func ImportDashboard(apiName string, deploy model.Deploy, customLogic []model.CustomLogic) error {
+var (
+	total = "Total"
+	method = "{{method}}"
+	quantile = "{{quantile}}"
+)
+
+func ImportDashboard(apiName string, deploy model.Deploy, customLogic model.AllCustomLogic) error {
 	req := createDashboardRequest{
 		Dashboard: generateDashboard(apiName, deploy, customLogic),
 		FolderID: 0,
@@ -49,40 +56,16 @@ type panelInput struct {
 	legend *string
 }
 
-func generateDashboard(apiName string, deploy model.Deploy, customLogic []model.CustomLogic) Dashboard {
-	var createCustomLogic *model.CustomLogic
-	for _, el := range customLogic {
-		if el.OperationType == model.OperationTypeCreate {
-			createCustomLogic = &el
-		}
-	}
-
-	total := "Total"
-	method := "{{method}}"
-	quantile := "{{quantile}}"
+func generateDashboard(apiName string, deploy model.Deploy, customLogic model.AllCustomLogic) Dashboard {
 	inputs := []panelInput{
 		// overall
 		panelInput{title: "Total Requests/sec (5 min avg)", expr: fmt.Sprintf("sum(rate(%s_http_requests_total[5m]))", apiName), legend: &total},
 		panelInput{title: "Requests/sec by method (5 min avg)", expr: fmt.Sprintf("rate(%s_http_requests_total[5m])", apiName), legend: &method},
 		// create
 		panelInput{title: "Request Latency: Create", expr: apiName + "_http_request_duration_seconds{method=\"CREATE\"}", legend: &quantile},
+
 	}
-	if createCustomLogic != nil {
-		if createCustomLogic.Before != nil {
-			inputs = append(inputs, panelInput{
-				title: "Custom Logic Latency: beforeCreate",
-				expr: apiName + "_custom_logic_duration_seconds{method=\"CREATE\", when=\"before\"}",
-				legend: &quantile,
-			})
-		}
-		if createCustomLogic.After != nil {
-			inputs = append(inputs, panelInput{
-				title: "Custom Logic Latency: afterCreate",
-				expr: apiName + "_custom_logic_duration_seconds{method=\"CREATE\", when=\"after\"}",
-				legend: &quantile,
-			})
-		}
-	}
+	inputs = append(inputs, customLogicPanels(apiName, "CREATE", customLogic.Create)...)
 	inputs = append(inputs,
 		panelInput{title: "Database Latency: Create", expr: apiName + "_database_access_duration_seconds{method=\"CREATE\"}", legend: &quantile},
 		// read
@@ -92,6 +75,21 @@ func generateDashboard(apiName string, deploy model.Deploy, customLogic []model.
 		panelInput{title: "Request Latency: List", expr: apiName + "_http_request_duration_seconds{method=\"LIST\"}", legend: &quantile},
 		panelInput{title: "Database Latency: List", expr: apiName + "_database_access_duration_seconds{method=\"LIST\"}", legend: &quantile},
 	)
+
+	// update
+	for actionName, actionCustomLogic := range customLogic.Update {
+		inputs = append(inputs, panelInput{title: "Request Latency: " + actionName, expr: fmt.Sprintf("%s_http_request_duration_seconds{method=\"%s\"}", apiName, actionName), legend: &quantile})
+		inputs = append(inputs, customLogicPanels(apiName, actionName, actionCustomLogic)...)
+		inputs = append(inputs, panelInput{title: "Database Latency: " + actionName, expr: fmt.Sprintf("%s_database_access_duration_seconds{method=\"%s\"}", apiName, actionName), legend: &quantile})
+	}
+
+	// delete
+	inputs = append(inputs, panelInput{title: "Request Latency: Delete", expr: apiName + "_http_request_duration_seconds{method=\"DELETE\"}", legend: &quantile})
+	inputs = append(inputs, customLogicPanels(apiName, "DELETE", customLogic.Delete)...)
+	inputs = append(inputs, panelInput{title: "Database Latency: Delete", expr: apiName + "_database_access_duration_seconds{method=\"DELETE\"}", legend: &quantile})
+	if customLogic.Delete != nil {
+		inputs = append(inputs, customLogicPanels(apiName, "Delete", customLogic.Delete)...)
+	}
 	var panels []Panel
 	for i, input := range inputs {
 		panels = append(panels, generatePanel(apiName, i, input))
@@ -105,6 +103,25 @@ func generateDashboard(apiName string, deploy model.Deploy, customLogic []model.
 		SchemaVersion: 22,
 		UID: deploy.ID,
 	}
+}
+
+func customLogicPanels(apiName string, method string, customLogic *model.CustomLogic) []panelInput {
+	panels := []panelInput{}
+	if customLogic.Before != nil {
+		panels = append(panels, panelInput{
+			title: fmt.Sprintf("Custom Logic Latency: before%s", strings.Title(strings.ToLower(method))),
+			expr: fmt.Sprintf("%s_custom_logic_duration_seconds{method=\"%s\", when=\"before\"}", apiName, method),
+			legend: &quantile,
+		})
+	}
+	if customLogic.After != nil {
+		panels = append(panels, panelInput{
+			title: fmt.Sprintf("Custom Logic Latency: after%s", strings.Title(strings.ToLower(method))),
+			expr: fmt.Sprintf("%s_custom_logic_duration_seconds{method=\"%s\", when=\"after\"}", apiName, method),
+			legend: &quantile,
+		})
+	}
+	return panels
 }
 
 func generatePanel(apiName string, i int, input panelInput) Panel {

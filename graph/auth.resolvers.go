@@ -4,9 +4,46 @@ package graph
 
 import (
 	"context"
+	"errors"
 
 	"github.com/gracew/widget/graph/model"
 )
+
+func (r *actionDefinitionResolver) Auth(ctx context.Context, obj *model.ActionDefinition) (*model.AuthPolicy, error) {
+	apiID := apiID(ctx)
+	if apiID == "" {
+		return nil, errors.New("expected API ID to be set in context")
+	}
+	auth, err := r.Store.Auth(apiID)
+	if err != nil || auth == nil {
+		return nil, err
+	}
+	return auth.Update[obj.Name], nil
+}
+
+func (r *deleteDefinitionResolver) Auth(ctx context.Context, obj *model.DeleteDefinition) (*model.AuthPolicy, error) {
+	apiID := apiID(ctx)
+	if apiID == "" {
+		return nil, errors.New("expected API ID to be set in context")
+	}
+	auth, err := r.Store.Auth(apiID)
+	if err != nil || auth == nil {
+		return nil, err
+	}
+	return auth.Delete, nil
+}
+
+func (r *listDefinitionResolver) Auth(ctx context.Context, obj *model.ListDefinition) (*model.AuthPolicy, error) {
+	apiID := apiID(ctx)
+	if apiID == "" {
+		return nil, errors.New("expected API ID to be set in context")
+	}
+	auth, err := r.Store.Auth(apiID)
+	if err != nil || auth == nil {
+		return nil, err
+	}
+	return auth.Read, nil
+}
 
 func (r *mutationResolver) AuthAPI(ctx context.Context, input model.AuthAPIInput) (bool, error) {
 	err := r.Store.SaveAuth(input)
@@ -16,6 +53,14 @@ func (r *mutationResolver) AuthAPI(ctx context.Context, input model.AuthAPIInput
 	return true, nil
 }
 
-func (r *queryResolver) Auth(ctx context.Context, apiID string) (*model.Auth, error) {
-	return r.Store.Auth(apiID)
+func (r *readDefinitionResolver) Auth(ctx context.Context, obj *model.ReadDefinition) (*model.AuthPolicy, error) {
+	apiID := apiID(ctx)
+	if apiID == "" {
+		return nil, errors.New("expected API ID to be set in context")
+	}
+	auth, err := r.Store.Auth(apiID)
+	if err != nil || auth == nil {
+		return nil, err
+	}
+	return auth.Read, nil
 }
