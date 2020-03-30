@@ -95,7 +95,7 @@ func (s Store) DeleteApi(id string) error {
 }
 
 func (s Store) SaveAuth(input model.AuthAPIInput) error {
-	var update map[string]*model.AuthPolicy
+	var update = make(map[string]*model.AuthPolicy)
 	for _, updateInput := range input.Update {
 		update[updateInput.ActionName] = convertAuthPolicyInput(updateInput.Auth)
 	}

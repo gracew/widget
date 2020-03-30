@@ -48,7 +48,7 @@ func (r *mutationResolver) DeployAPI(ctx context.Context, input model.DeployAPII
 		DeployID:    deploy.ID,
 		API:         *api,
 		Auth:        *auth,
-		CustomLogic: *customLogic,
+		CustomLogic: customLogic,
 	}
 
 	err = launcher.DeployAPI()
@@ -63,7 +63,7 @@ func (r *mutationResolver) DeployAPI(ctx context.Context, input model.DeployAPII
 		}
 	}
 
-	err = grafana.ImportDashboard(api.Name, *deploy, *customLogic)
+	err = grafana.ImportDashboard(api.Name, *deploy, customLogic)
 	if err != nil {
 		return nil, errorsw.Wrapf(err, "could not create grafana dashboard for api %s", input.APIID)
 	}
