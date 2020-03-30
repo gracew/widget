@@ -15,8 +15,8 @@ import (
 
 const (
 	CREATE = "create"
-	READ = "read"
-	LIST = "list"
+	READ   = "read"
+	LIST   = "list"
 	DELETE = "delete"
 )
 
