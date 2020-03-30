@@ -21,10 +21,10 @@ import (
 const TMP_DIR = "/Users/gracew/tmp"
 
 type Launcher struct {
-	Store store.Store
-	DeployID string
-	API model.API
-	Auth model.Auth
+	Store       store.Store
+	DeployID    string
+	API         model.API
+	Auth        model.Auth
 	CustomLogic model.AllCustomLogic
 }
 
@@ -67,16 +67,16 @@ func (l Launcher) generateCode() (string, error) {
 	for _, field := range l.API.Fields {
 		jenField := jen.Id(strings.Title(field.Name))
 		switch field.Type {
-			case model.TypeBoolean:
-				jenField.Bool()
-			case model.TypeFloat:
-				jenField.Float64()
-			case model.TypeInt:
-				jenField.Int32()
-			case model.TypeString:
-				jenField.String()
-			default:
-				return "", errors.New("unknown field type: " + field.Type.String())
+		case model.TypeBoolean:
+			jenField.Bool()
+		case model.TypeFloat:
+			jenField.Float64()
+		case model.TypeInt:
+			jenField.Int32()
+		case model.TypeString:
+			jenField.String()
+		default:
+			return "", errors.New("unknown field type: " + field.Type.String())
 		}
 		jenField.Tag(map[string]string{"json": field.Name})
 		fields = append(fields, jenField)
@@ -140,11 +140,11 @@ func (l Launcher) launchContainer() error {
 		// TODO(gracew): this is bad
 		"8081:8080",
 		"-v",
-		authPath + ":/app/auth.json",
+		authPath+":/app/auth.json",
 		"-v",
-		customLogicPath + ":/app/customLogic.json",
+		customLogicPath+":/app/customLogic.json",
 		"-e",
-		"API_NAME=" + l.API.Name,
+		"API_NAME="+l.API.Name,
 		"--name",
 		"widget-proxy",
 		"--network",
@@ -200,7 +200,7 @@ func (l Launcher) deployCustomLogic() error {
 		"run",
 		"-d",
 		"-v",
-		customLogicDir + ":/app/customLogic",
+		customLogicDir+":/app/customLogic",
 		"--name",
 		"custom-logic",
 		"--network",
@@ -219,24 +219,24 @@ func (l Launcher) deployCustomLogic() error {
 func getExtension(language model.Language) (string, error) {
 	// for now we just pick the first language
 	switch language {
-		case model.LanguageJavascript:
-			return ".js", nil
-		case model.LanguagePython:
-			return ".py", nil
-		default:
-			return "", errors.New("unknown custom logic language: " + language.String())
+	case model.LanguageJavascript:
+		return ".js", nil
+	case model.LanguagePython:
+		return ".py", nil
+	default:
+		return "", errors.New("unknown custom logic language: " + language.String())
 	}
 }
 
 func getImage(language model.Language) (string, error) {
 	// for now we just pick the first language
 	switch language {
-		case model.LanguageJavascript:
-			return "node-runner", nil
-		case model.LanguagePython:
-			return "python-runner", nil
-		default:
-			return "", errors.New("unknown custom logic language: " + language.String())
+	case model.LanguageJavascript:
+		return "node-runner", nil
+	case model.LanguagePython:
+		return "python-runner", nil
+	default:
+		return "", errors.New("unknown custom logic language: " + language.String())
 	}
 }
 
@@ -255,10 +255,10 @@ func writeTmpFile(input interface{}, prefix string) (string, error) {
 
 func writeCustomLogicFiles(dir string, label string, ext string, customLogic *model.CustomLogic) {
 	if customLogic.Before != nil {
-		writeFileInDir(dir, "before" + label + ext, *customLogic.Before)
+		writeFileInDir(dir, "before"+label+ext, *customLogic.Before)
 	}
 	if customLogic.After != nil {
-		writeFileInDir(dir, "after" + label + ext, *customLogic.After)
+		writeFileInDir(dir, "after"+label+ext, *customLogic.After)
 	}
 }
 
@@ -289,4 +289,4 @@ func copyFile(srcPath string, destPath string) error {
 		return errors.Wrap(err, "failed to copy file")
 	}
 	return nil
-  }
+}

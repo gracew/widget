@@ -18,13 +18,13 @@ func (s Store) NewAPI(input model.DefineAPIInput) (*model.API, error) {
 	// janky way of converting from DefineAPIInput -> API
 	bytes, err := json.Marshal(input)
 	if err != nil {
-		return nil, errors.Wrapf(err, "could not marshal input to json");
+		return nil, errors.Wrapf(err, "could not marshal input to json")
 	}
 
 	var api model.API
 	err = json.Unmarshal(bytes, &api)
 	if err != nil {
-		return nil, errors.Wrapf(err, "could not unmarshal bytes as json");
+		return nil, errors.Wrapf(err, "could not unmarshal bytes as json")
 	}
 
 	api.ID = uuid.New().String()
@@ -39,13 +39,13 @@ func (s Store) UpdateAPI(input model.UpdateAPIInput) (*model.API, error) {
 	// janky way of converting from UpdateAPIInput -> API
 	bytes, err := json.Marshal(input)
 	if err != nil {
-		return nil, errors.Wrapf(err, "could not marshal input to json");
+		return nil, errors.Wrapf(err, "could not marshal input to json")
 	}
 
 	var api model.API
 	err = json.Unmarshal(bytes, &api)
 	if err != nil {
-		return nil, errors.Wrapf(err, "could not unmarshal bytes as json");
+		return nil, errors.Wrapf(err, "could not unmarshal bytes as json")
 	}
 
 	m := s.DB.Model(&api)
@@ -100,10 +100,10 @@ func (s Store) SaveAuth(input model.AuthAPIInput) error {
 		update[updateInput.ActionName] = convertAuthPolicyInput(updateInput.Auth)
 	}
 	auth := &model.Auth{
-		APIID:         input.APIID,
-		Read:      convertAuthPolicyInput(input.Read),
-		Update:        update,
-		Delete:         convertAuthPolicyInput(input.Delete),
+		APIID:  input.APIID,
+		Read:   convertAuthPolicyInput(input.Read),
+		Update: update,
+		Delete: convertAuthPolicyInput(input.Delete),
 	}
 
 	_, err := s.DB.Model(auth).OnConflict("(apiid) DO UPDATE").Insert()
@@ -134,10 +134,10 @@ func (s Store) SaveCustomLogic(input model.SaveCustomLogicInput) error {
 		update[updateInput.ActionName] = convertCustomLogicInput(updateInput.CustomLogic)
 	}
 	customLogic := &model.AllCustomLogic{
-		APIID:         input.APIID,
-		Create:      convertCustomLogicInput(input.Create),
-		Update:        update,
-		Delete:         convertCustomLogicInput(input.Delete),
+		APIID:  input.APIID,
+		Create: convertCustomLogicInput(input.Create),
+		Update: update,
+		Delete: convertCustomLogicInput(input.Delete),
 	}
 
 	_, err := s.DB.Model(customLogic).OnConflict("(apiid) DO UPDATE").Insert()
@@ -190,8 +190,8 @@ func (s Store) Deploys(apiID string) ([]model.Deploy, error) {
 func (s Store) SaveDeployStepStatus(deployID string, step model.DeployStep, status model.DeployStatus) {
 	stepStatus := &model.DeployStepStatus{
 		DeployID: deployID,
-		Step: step,
-		Status: status,
+		Step:     step,
+		Status:   status,
 	}
 	_, err := s.DB.Model(stepStatus).OnConflict("(deploy_id, step) DO UPDATE").Insert()
 	if err != nil {

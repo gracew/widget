@@ -14,15 +14,15 @@ import (
 )
 
 var (
-	total = "Total"
-	method = "{{method}}"
+	total    = "Total"
+	method   = "{{method}}"
 	quantile = "{{quantile}}"
 )
 
 func ImportDashboard(apiName string, deploy model.Deploy, customLogic model.AllCustomLogic) error {
 	req := createDashboardRequest{
 		Dashboard: generateDashboard(apiName, deploy, customLogic),
-		FolderID: 0,
+		FolderID:  0,
 		Overwrite: true,
 	}
 	reqBytes, err := json.Marshal(req)
@@ -40,19 +40,19 @@ func ImportDashboard(apiName string, deploy model.Deploy, customLogic model.AllC
 
 type createDashboardRequest struct {
 	Dashboard Dashboard `json:"dashboard"`
-	FolderID int `json:"folderId"`
-	Overwrite bool `json:"overwrite"`
+	FolderID  int       `json:"folderId"`
+	Overwrite bool      `json:"overwrite"`
 }
 
 type createDashboardResponse struct {
-	UID string `json:"uid"`
-	URL string `json:"url"`
+	UID    string `json:"uid"`
+	URL    string `json:"url"`
 	Status string `json:"status"`
 }
 
 type panelInput struct {
-	title string
-	expr string
+	title  string
+	expr   string
 	legend *string
 }
 
@@ -63,7 +63,6 @@ func generateDashboard(apiName string, deploy model.Deploy, customLogic model.Al
 		panelInput{title: "Requests/sec by method (5 min avg)", expr: fmt.Sprintf("rate(%s_http_requests_total[5m])", apiName), legend: &method},
 		// create
 		panelInput{title: "Request Latency: Create", expr: apiName + "_http_request_duration_seconds{method=\"CREATE\"}", legend: &quantile},
-
 	}
 	inputs = append(inputs, customLogicPanels(apiName, "CREATE", customLogic.Create)...)
 	inputs = append(inputs,
@@ -96,12 +95,12 @@ func generateDashboard(apiName string, deploy model.Deploy, customLogic model.Al
 	}
 
 	return Dashboard{
-		Editable: false,
-		GraphTooltip: 2,
-		Panels: panels,
-		Title: apiName,
+		Editable:      false,
+		GraphTooltip:  2,
+		Panels:        panels,
+		Title:         apiName,
 		SchemaVersion: 22,
-		UID: deploy.ID,
+		UID:           deploy.ID,
 	}
 }
 
@@ -109,15 +108,15 @@ func customLogicPanels(apiName string, method string, customLogic *model.CustomL
 	panels := []panelInput{}
 	if customLogic.Before != nil {
 		panels = append(panels, panelInput{
-			title: fmt.Sprintf("Custom Logic Latency: before%s", strings.Title(strings.ToLower(method))),
-			expr: fmt.Sprintf("%s_custom_logic_duration_seconds{method=\"%s\", when=\"before\"}", apiName, method),
+			title:  fmt.Sprintf("Custom Logic Latency: before%s", strings.Title(strings.ToLower(method))),
+			expr:   fmt.Sprintf("%s_custom_logic_duration_seconds{method=\"%s\", when=\"before\"}", apiName, method),
 			legend: &quantile,
 		})
 	}
 	if customLogic.After != nil {
 		panels = append(panels, panelInput{
-			title: fmt.Sprintf("Custom Logic Latency: after%s", strings.Title(strings.ToLower(method))),
-			expr: fmt.Sprintf("%s_custom_logic_duration_seconds{method=\"%s\", when=\"after\"}", apiName, method),
+			title:  fmt.Sprintf("Custom Logic Latency: after%s", strings.Title(strings.ToLower(method))),
+			expr:   fmt.Sprintf("%s_custom_logic_duration_seconds{method=\"%s\", when=\"after\"}", apiName, method),
 			legend: &quantile,
 		})
 	}
@@ -126,7 +125,7 @@ func customLogicPanels(apiName string, method string, customLogic *model.CustomL
 
 func generatePanel(apiName string, i int, input panelInput) Panel {
 	var x int
-	if i % 2 == 0 {
+	if i%2 == 0 {
 		x = 0
 	} else {
 		x = 12
@@ -136,15 +135,15 @@ func generatePanel(apiName string, i int, input panelInput) Panel {
 		legend = *input.legend
 	}
 	return Panel{
-		ID: i,
+		ID:         i,
 		Datasource: "Prometheus",
-		GridPos: GridPos{H: 9, W: 12, X: x, Y: i / 2 * 9},
+		GridPos:    GridPos{H: 9, W: 12, X: x, Y: i / 2 * 9},
 		Targets: []Target{Target{
-			Expr: input.expr,
+			Expr:         input.expr,
 			LegendFormat: legend,
-			RefID: "A",
+			RefID:        "A",
 		}},
 		Title: input.title,
-		Type: "graph",
+		Type:  "graph",
 	}
 }
