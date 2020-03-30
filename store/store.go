@@ -145,9 +145,6 @@ func (s Store) SaveCustomLogic(input model.SaveCustomLogicInput) error {
 }
 
 func convertCustomLogicInput(input *model.CustomLogicInput) *model.CustomLogic {
-	if input == nil {
-		return nil
-	}
 	return &model.CustomLogic{Language: input.Language, Before: input.Before, After: input.After}
 }
 

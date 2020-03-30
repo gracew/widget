@@ -178,18 +178,18 @@ func (l Launcher) deployCustomLogic() error {
 	}
 
 	// for now we just pick the first language
+	// TODO(gracew): fix this
 	language := l.CustomLogic.Create.Language
 	ext, err := getExtension(l.CustomLogic.Create.Language)
 	if err != nil {
 		return errors.Wrap(err, "could not determine file extension")
 	}
 
-		if l.CustomLogic.Create.Before != nil {
-			writeFileInDir(customLogicDir, "beforeCreate" + ext, *l.CustomLogic.Create.Before)
-		}
-		if l.CustomLogic.Create.After != nil {
-			writeFileInDir(customLogicDir, "afterCreate" + ext, *l.CustomLogic.Create.After)
-		}
+	writeCustomLogicFiles(customLogicDir, "Create", ext, l.CustomLogic.Create)
+	writeCustomLogicFiles(customLogicDir, "Delete", ext, l.CustomLogic.Delete)
+	for actionName, actionCustomLogic := range l.CustomLogic.Update {
+		writeCustomLogicFiles(customLogicDir, actionName, ext, actionCustomLogic)
+	}
 
 	image, err := getImage(language)
 	if err != nil {
@@ -251,6 +251,15 @@ func writeTmpFile(input interface{}, prefix string) (string, error) {
 		return "", errors.Wrap(err, "failed to encode object to file")
 	}
 	return filepath.Abs(file.Name())
+}
+
+func writeCustomLogicFiles(dir string, label string, ext string, customLogic *model.CustomLogic) {
+	if customLogic.Before != nil {
+		writeFileInDir(dir, "before" + label + ext, *customLogic.Before)
+	}
+	if customLogic.After != nil {
+		writeFileInDir(dir, "after" + label + ext, *customLogic.After)
+	}
 }
 
 func writeFileInDir(dir string, name string, input string) error {
