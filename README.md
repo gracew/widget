@@ -9,7 +9,7 @@ go run server.go
 Regenerate after changes to `schema.graphql`
 
 ```
-go run github.com/99designs/gqlgen
+go generate ./...
 ```
 
 Connect to docker postgres:
