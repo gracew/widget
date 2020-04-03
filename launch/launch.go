@@ -66,9 +66,11 @@ func (l Launcher) generateCode() (string, error) {
 	}
 	for _, field := range l.API.Fields {
 		jenField := jen.Id(strings.Title(field.Name))
+		tags := map[string]string{"json": field.Name}
 		switch field.Type {
 		case model.TypeBoolean:
 			jenField.Bool()
+			tags["sql"] = ",notnull"
 		case model.TypeFloat:
 			jenField.Float64()
 		case model.TypeInt:
@@ -78,7 +80,7 @@ func (l Launcher) generateCode() (string, error) {
 		default:
 			return "", errors.New("unknown field type: " + field.Type.String())
 		}
-		jenField.Tag(map[string]string{"json": field.Name})
+		jenField.Tag(tags)
 		fields = append(fields, jenField)
 	}
 	f.Type().Id("Object").Struct(fields...)
@@ -119,7 +121,12 @@ func (l Launcher) buildImage(generated string) error {
 }
 
 func (l Launcher) launchContainer() error {
-	// write auth and customLogic objects to temp files
+	// write API definition to temp files
+	apiPath, err := writeTmpFile(l.API, "api-")
+	if err != nil {
+		return errors.Wrap(err, "failed to write api to temp file")
+	}
+
 	authPath, err := writeTmpFile(l.Auth, "auth-")
 	if err != nil {
 		return errors.Wrap(err, "failed to write auth to temp file")
@@ -139,6 +146,8 @@ func (l Launcher) launchContainer() error {
 		"-p",
 		// TODO(gracew): this is bad
 		"8081:8080",
+		"-v",
+		apiPath+":/app/api.json",
 		"-v",
 		authPath+":/app/auth.json",
 		"-v",
