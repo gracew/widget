@@ -9,10 +9,12 @@ import (
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/go-pg/pg"
 	"github.com/go-pg/pg/orm"
+	"github.com/gorilla/mux"
 	"github.com/gracew/widget/graph"
 	"github.com/gracew/widget/graph/generated"
 	"github.com/gracew/widget/graph/model"
 	"github.com/gracew/widget/store"
+	"github.com/gracew/widget/upload"
 	"github.com/rs/cors"
 )
 
@@ -32,11 +34,17 @@ func main() {
 		port = defaultPort
 	}
 
-	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{Store: store.Store{DB: db}}}))
+	s := store.Store{DB: db}
+	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{Store: s}}))
 
 	http.Handle("/playground", playground.Handler("GraphQL playground", "/query"))
 	// TODO(gracew): remove cors later
 	http.Handle("/query", cors.Default().Handler(srv))
+
+	h := upload.Handler{Store: s}
+	r := mux.NewRouter()
+	r.HandleFunc("/apis/{id}/upload", h.UploadHandler).Methods("POST")
+	http.Handle("/", r)
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))

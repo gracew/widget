@@ -55,7 +55,6 @@ func (s Store) UpdateAPI(input model.UpdateAPIInput) (*model.API, error) {
 	if input.Operations != nil {
 		m.Column("operations")
 	}
-	// TODO(gracew): figure out better way to not clobber name
 	_, err = m.WherePK().Update()
 	if err != nil {
 		return nil, err
@@ -128,24 +127,9 @@ func (s Store) Auth(apiID string) (*model.Auth, error) {
 	return auth, nil
 }
 
-func (s Store) SaveCustomLogic(input model.SaveCustomLogicInput) error {
-	var update = make(map[string]*model.CustomLogic)
-	for _, updateInput := range input.Update {
-		update[updateInput.ActionName] = convertCustomLogicInput(updateInput.CustomLogic)
-	}
-	customLogic := &model.AllCustomLogic{
-		APIID:  input.APIID,
-		Create: convertCustomLogicInput(input.Create),
-		Update: update,
-		Delete: convertCustomLogicInput(input.Delete),
-	}
-
+func (s Store) SaveCustomLogic(customLogic *model.AllCustomLogic) error {
 	_, err := s.DB.Model(customLogic).OnConflict("(apiid) DO UPDATE").Insert()
 	return err
-}
-
-func convertCustomLogicInput(input *model.CustomLogicInput) *model.CustomLogic {
-	return &model.CustomLogic{Language: input.Language, Before: input.Before, After: input.After}
 }
 
 func (s Store) CustomLogic(apiID string) (*model.AllCustomLogic, error) {

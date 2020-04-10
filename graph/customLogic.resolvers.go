@@ -46,10 +46,25 @@ func (r *deleteDefinitionResolver) CustomLogic(ctx context.Context, obj *model.D
 }
 
 func (r *mutationResolver) SaveCustomLogic(ctx context.Context, input model.SaveCustomLogicInput) (bool, error) {
+	var update = make(map[string]*model.CustomLogic)
+	for _, updateInput := range input.Update {
+		update[updateInput.ActionName] = convertCustomLogicInput(updateInput.CustomLogic)
+	}
+	customLogic := &model.AllCustomLogic{
+		APIID:  input.APIID,
+		Create: convertCustomLogicInput(input.Create),
+		Update: update,
+		Delete: convertCustomLogicInput(input.Delete),
+	}
+
 	// TODO(gracew): postgres probably isn't the best place for this
-	err := r.Store.SaveCustomLogic(input)
+	err := r.Store.SaveCustomLogic(customLogic)
 	if err != nil {
 		return false, err
 	}
 	return true, nil
+}
+
+func convertCustomLogicInput(input *model.CustomLogicInput) *model.CustomLogic {
+	return &model.CustomLogic{Language: input.Language, Before: input.Before, After: input.After}
 }

@@ -116,6 +116,9 @@ func generateDashboard(apiName string, deploy model.Deploy, customLogic *model.A
 
 func customLogicPanels(apiName string, method string, customLogic *model.CustomLogic) []panelInput {
 	panels := []panelInput{}
+	if customLogic == nil {
+		return panels
+	}
 	if customLogic.Before != nil {
 		panels = append(panels, panelInput{
 			title:  fmt.Sprintf("Custom Logic Latency: before%s", strings.Title(strings.ToLower(method))),

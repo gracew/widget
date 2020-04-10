@@ -53,10 +53,11 @@ type Auth struct {
 }
 
 type AllCustomLogic struct {
-	APIID  string                  `json:"apiID" sql:",pk"`
-	Create *CustomLogic            `json:"create"`
-	Update map[string]*CustomLogic `json:"update"`
-	Delete *CustomLogic            `json:"delete"`
+	APIID    string                  `json:"apiID" sql:",pk"`
+	ImageURL string                  `json:"imageURL"`
+	Create   *CustomLogic            `json:"create"`
+	Update   map[string]*CustomLogic `json:"update"`
+	Delete   *CustomLogic            `json:"delete"`
 }
 
 type DeployStepStatus struct {

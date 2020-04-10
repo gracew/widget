@@ -37,6 +37,7 @@ input UpdateCustomLogicInput {
 
 input SaveCustomLogicInput {
   apiID: ID!
+  srcUrl: String
   create: CustomLogicInput
   update: [UpdateCustomLogicInput!]
   delete: CustomLogicInput
